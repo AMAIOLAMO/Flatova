@@ -10,7 +10,7 @@ public class RenderDevice
 	public RenderDevice( Resolution resolution ) =>
 		_resolution = resolution;
 
-	public void RenderTransformed( WorldObject renderingObject, Camera camera )
+	public void RenderObject( WorldObject renderingObject, Camera camera )
 	{
 		Matrix4x4 worldMatrix = renderingObject.GetWorldMatrix();
 
