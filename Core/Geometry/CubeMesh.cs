@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace Flatova;
+namespace Flatova.Geometry;
 
 public class CubeMesh : Mesh
 {

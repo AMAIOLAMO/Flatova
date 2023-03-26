@@ -1,10 +1,12 @@
-using System.Numerics;
 using Raylib_cs;
+using System.Numerics;
+using Flatova.Geometry;
+using Flatova.Rendering;
 using static Raylib_cs.Raylib;
 
 namespace Flatova;
 
-public class SoftEngine : IApplication
+public class RenderApplication : IApplication
 {
 	public void Initialize()
 	{
@@ -12,7 +14,7 @@ public class SoftEngine : IApplication
 
 		_device = new RenderDevice( resolution );
 
-		_transformedMesh = new TransformedMesh( new CubeMesh(), new Transform() );
+		_centerMesh = new WorldObject( new CubeMesh(), new Transform() );
 
 		// Understand how camera works here
 		_camera = new Camera( 160 * DEG2RAD, resolution.AspectRatio, 0.01f, 200.0f );
@@ -20,9 +22,12 @@ public class SoftEngine : IApplication
 
 	public void Update()
 	{
-		_transformedMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
+		_centerMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
 
-		DrawText( _camera.Position.ToString(), 0, 20, 15, Color.GOLD );
+		int horizontal = GetKeyAxisStrength( KeyboardKey.KEY_A, KeyboardKey.KEY_D );
+		int vertical = GetKeyAxisStrength( KeyboardKey.KEY_S, KeyboardKey.KEY_W );
+
+		_camera.Position += new Vector3( horizontal, vertical, 0f ) * GetFrameTime() * CAMERA_MOVE_SPEED;
 	}
 
 	public void Draw()
@@ -31,15 +36,18 @@ public class SoftEngine : IApplication
 
 		DrawFPS( 0, 0 );
 
-		_device!.RenderTransformed( _transformedMesh!, _camera! );
+		DrawText( $"Camera Position: {_camera!.Position.ToString()}", 0, 20, 17, Color.GOLD );
+
+		_device!.RenderTransformed( _centerMesh!, _camera! );
 	}
 
+	const float CAMERA_MOVE_SPEED = 5f;
 
 	Camera? _camera;
 
 	RenderDevice? _device;
 
-	TransformedMesh? _transformedMesh;
+	WorldObject? _centerMesh;
 
 	static int GetKeyAxisStrength( KeyboardKey negativeKey, KeyboardKey positiveKey )
 	{

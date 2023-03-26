@@ -11,7 +11,7 @@ internal static class Program
 
 		Raylib.SetTargetFPS( 60 );
 
-		IApplication application = new SoftEngine();
+		IApplication application = new RenderApplication();
 
 		application.Initialize();
 

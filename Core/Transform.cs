@@ -12,7 +12,9 @@ public class Transform
 		Rotation = rotation;
 	}
 
-	// Order: Rotation -> Translate
+	/// <summary>
+	///     Returns this transform as a world matrix using <see cref="Position" /> and <see cref="Rotation" />
+	/// </summary>
 	public Matrix4x4 AsWorldMatrix() =>
 		Matrix4x4.CreateFromYawPitchRoll( Rotation.Y, Rotation.X, Rotation.Z ) * Matrix4x4.CreateTranslation( Position );
 
