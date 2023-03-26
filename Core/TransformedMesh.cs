@@ -1,5 +1,7 @@
 using System.Numerics;
 
+namespace Flatova;
+
 public class TransformedMesh
 {
 	public TransformedMesh( Mesh mesh, Transform transform )

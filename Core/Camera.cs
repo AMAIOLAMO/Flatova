@@ -5,46 +5,44 @@ namespace Flatova;
 public class Camera
 {
 	// TODO: TOO MANY PARAMS!
-	public Camera( Vector3 position, Vector3 lookDirection, float fov, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
+	public Camera( float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
 	{
-		Position = position;
-		LookDirection = lookDirection;
-
-		_fov = fov;
+		_fovRadians = fovRadians;
 		_aspectRatio = aspectRatio;
+
+		Position = Vector3.UnitZ * 90;
+
+		LookTarget = Vector3.Zero;
 
 		_nearPlaneDistance = nearPlaneDistance;
 		_farPlaneDistance = farPlaneDistance;
 	}
 
 	public Matrix4x4 GetProjectionMatrix() =>
-		Matrix4x4.CreatePerspectiveFieldOfView( _fov, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
+		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
 
-	public Vector2 ProjectToScreen( Vector3 worldPoint, Resolution resolution )
+	public Vector2 WorldToScreen( Vector3 worldPoint, Resolution resolution )
 	{
-		Vector3 projectedWorldPoint = Vector3.Transform( worldPoint, GetProjectionMatrix() );
+		Vector3 projectedScreenPercent = Vector3.Transform( worldPoint, GetViewMatrix() * GetProjectionMatrix() );
 
 		return new Vector2
 		(
-			projectedWorldPoint.X * resolution.Width,
-			-projectedWorldPoint.Y * resolution.Width
+			projectedScreenPercent.X * resolution.Width,
+			-projectedScreenPercent.Y * resolution.Height
 		) + resolution.Half;
 	}
 
 	// TODO: allow camera to rotate on jaw
 	public Matrix4x4 GetViewMatrix() =>
-		Matrix4x4.CreateLookAt( Position, GetAbsoluteLookDirection(), Vector3.UnitY );
+		Matrix4x4.CreateLookAt( Position, LookTarget, Vector3.UnitY );
 
-	public Vector3 Position { get; set; }
-	public Vector3 LookDirection { get; set; }
+	public Vector3 Position   { get; set; }
+	public Vector3 LookTarget { get; set; }
 
 	readonly float _nearPlaneDistance;
 	readonly float _farPlaneDistance;
 
-	readonly float _fov;
+	readonly float _fovRadians;
 
 	readonly float _aspectRatio;
-
-	Vector3 GetAbsoluteLookDirection() =>
-		Position + LookDirection;
 }

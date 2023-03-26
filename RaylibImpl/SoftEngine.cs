@@ -12,34 +12,17 @@ public class SoftEngine : IApplication
 
 		_device = new RenderDevice( resolution );
 
-		_renderObjectList = new List<TransformedMesh>();
-
-		_transformedMesh = new TransformedMesh( new CubeMesh(), new Transform( Vector3.Zero, Vector3.Zero ) );
-		_secondMesh = new TransformedMesh( new CubeMesh(), new Transform( Vector3.One, Vector3.Zero ) );
-
-		_renderObjectList.Add( _transformedMesh );
-		_renderObjectList.Add( _secondMesh );
+		_transformedMesh = new TransformedMesh( new CubeMesh(), new Transform() );
 
 		// Understand how camera works here
-		_camera = new Camera( -Vector3.UnitZ * 3, Vector3.UnitZ, 20f, 20f, 1f, 10 );
+		_camera = new Camera( 160 * DEG2RAD, resolution.AspectRatio, 0.01f, 200.0f );
 	}
 
 	public void Update()
 	{
-		_secondMesh.Transform.Position = new Vector3( ( float )Math.Cos( GetTime() ) * 3f, ( float )Math.Sin( GetTime() ) * 3f, 0 );
+		_transformedMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
 
-		int horizontalInput = GetKeyAxisStrength( KeyboardKey.KEY_A, KeyboardKey.KEY_D );
-		int verticalInput = GetKeyAxisStrength( KeyboardKey.KEY_S, KeyboardKey.KEY_W );
-
-		_camera.Position += Vector3.UnitX * horizontalInput * GetFrameTime();
-		_camera.Position += Vector3.UnitY * verticalInput * GetFrameTime();
-
-		if ( IsMouseButtonDown( MouseButton.MOUSE_BUTTON_LEFT ) )
-			_cameraRotation += GetFrameTime();
-
-		Vector3 rotatedDirection = Vector3.Transform( Vector3.UnitX, Matrix4x4.CreateRotationY( _cameraRotation ) );
-
-		_camera.LookDirection = rotatedDirection;
+		DrawText( _camera.Position.ToString(), 0, 20, 15, Color.GOLD );
 	}
 
 	public void Draw()
@@ -48,21 +31,15 @@ public class SoftEngine : IApplication
 
 		DrawFPS( 0, 0 );
 
-		_device.RenderList( _renderObjectList, _camera );
+		_device!.RenderTransformed( _transformedMesh!, _camera! );
 	}
 
 
-	Camera _camera;
+	Camera? _camera;
 
-	RenderDevice _device;
+	RenderDevice? _device;
 
-	TransformedMesh _transformedMesh;
-
-	TransformedMesh _secondMesh;
-
-	List<TransformedMesh> _renderObjectList;
-
-	float _cameraRotation;
+	TransformedMesh? _transformedMesh;
 
 	static int GetKeyAxisStrength( KeyboardKey negativeKey, KeyboardKey positiveKey )
 	{

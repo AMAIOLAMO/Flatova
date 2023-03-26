@@ -2,6 +2,10 @@ using System.Numerics;
 
 public class Transform
 {
+	public Transform() : this( Vector3.Zero, Vector3.Zero )
+	{
+	}
+
 	public Transform( Vector3 position, Vector3 rotation )
 	{
 		Position = position;
