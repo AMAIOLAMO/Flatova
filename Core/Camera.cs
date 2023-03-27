@@ -10,8 +10,8 @@ public class Camera
 		_fovRadians = fovRadians;
 		_aspectRatio = aspectRatio;
 
-		Position = Vector3.UnitZ * 3;
-		LookDirection = -Vector3.UnitZ;
+		Position = Vector3.UnitZ * 10.0f;
+		LookDirection = Vector3.UnitZ;
 
 		_nearPlaneDistance = nearPlaneDistance;
 		_farPlaneDistance = farPlaneDistance;
@@ -25,12 +25,13 @@ public class Camera
 
 	public Vector2 WorldToScreen( Vector3 worldPoint, Resolution resolution )
 	{
-		Vector3 projectedScreenPercent = worldPoint.Transform( GetViewProjectionMatrix() );
+		Vector4 projectedScreenPercent = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
 
+		// requires specific perspective division system.Numerics' transform method does not do it
 		return new Vector2
 		(
-			projectedScreenPercent.X * resolution.Width,
-			-projectedScreenPercent.Y * resolution.Height
+			projectedScreenPercent.X / projectedScreenPercent.W * resolution.Width,
+			projectedScreenPercent.Y / projectedScreenPercent.W * resolution.Height
 		) + resolution.Half;
 	}
 
@@ -38,7 +39,8 @@ public class Camera
 	public Matrix4x4 GetViewMatrix() =>
 		Matrix4x4.CreateLookAt( Position, GetLookTarget(), Vector3.UnitY );
 
-	public Vector3 Position      { get; set; }
+	public Vector3 Position { get; set; }
+
 	public Vector3 LookDirection { get; set; }
 
 

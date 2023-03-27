@@ -8,7 +8,7 @@ public readonly struct Resolution
 		Height = height;
 	}
 
-	public float AspectRatio  => ( float )Width / Height;
+	public float AspectRatio => ( float )Width / Height;
 
 	public int Width  { get; }
 	public int Height { get; }

@@ -18,12 +18,12 @@ public class RenderApplication : IApplication
 		_sideMesh = new WorldObject( new CubeMesh(), new Transform() );
 
 		// Understand how camera works here
-		_camera = new Camera( 170 * DEG2RAD, resolution.AspectRatio, 1f, 200.0f );
+		_camera = new Camera( 60 * DEG2RAD, resolution.AspectRatio, 0.1f, 1.0f );
 	}
 
 	public void Update()
 	{
-		_centerMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
+		// _centerMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
 
 		_sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
 		_sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
@@ -59,7 +59,7 @@ public class RenderApplication : IApplication
 		int horizontal = GetKeyAxisStrength( KeyboardKey.KEY_A, KeyboardKey.KEY_D );
 		int vertical = GetKeyAxisStrength( KeyboardKey.KEY_S, KeyboardKey.KEY_W );
 
-		int depth = GetKeyAxisStrength( KeyboardKey.KEY_Q, KeyboardKey.KEY_E );
+		int depth = GetKeyAxisStrength( KeyboardKey.KEY_E, KeyboardKey.KEY_Q );
 
 		var input = new Vector3( horizontal, vertical, depth );
 
