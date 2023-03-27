@@ -23,8 +23,6 @@ public class RenderApplication : IApplication
 
 	public void Update()
 	{
-		// _centerMesh!.Transform.Rotation += new Vector3( GetFrameTime(), GetFrameTime(), 0f );
-
 		_sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
 		_sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
 

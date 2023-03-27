@@ -14,9 +14,9 @@ public class RenderDevice
 	{
 		Matrix4x4 worldMatrix = renderingObject.GetWorldMatrix();
 
-		ReadOnlySpan<TriangleIndex> triangles = renderingObject.Mesh.Triangles;
+		ReadOnlySpan<Face> triangles = renderingObject.Mesh.Triangles;
 
-		foreach ( TriangleIndex triangleIndex in triangles )
+		foreach ( Face triangleIndex in triangles )
 		{
 			// Vertices 
 			( Vector3 first, Vector3 second, Vector3 third ) = renderingObject.Mesh.GetTriangleVertices( triangleIndex );

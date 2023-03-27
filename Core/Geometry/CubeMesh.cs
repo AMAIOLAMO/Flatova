@@ -18,7 +18,7 @@ public class CubeMesh : Mesh
 			new( -1, -1, 1 ),
 			new( -1, -1, -1 )
 		},
-		new TriangleIndex[]
+		new Face[]
 		{
 			// Front Face
 			new( 6, 4, 2 ),
