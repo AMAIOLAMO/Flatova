@@ -5,13 +5,12 @@ namespace Flatova;
 public class Camera
 {
 	// TODO: TOO MANY PARAMS!
-	public Camera( float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
+	public Camera( Transform transform, float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
 	{
 		_fovRadians = fovRadians;
 		_aspectRatio = aspectRatio;
 
-		Position = Vector3.UnitZ * 10.0f;
-		LookDirection = Vector3.UnitZ;
+		Transform = transform;
 
 		_nearPlaneDistance = nearPlaneDistance;
 		_farPlaneDistance = farPlaneDistance;
@@ -37,11 +36,9 @@ public class Camera
 
 	// TODO: allow camera to rotate on yaw
 	public Matrix4x4 GetViewMatrix() =>
-		Matrix4x4.CreateLookAt( Position, GetLookTarget(), Vector3.UnitY );
+		Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
 
-	public Vector3 Position { get; set; }
-
-	public Vector3 LookDirection { get; set; }
+	public Transform Transform { get; }
 
 
 	readonly float _nearPlaneDistance;
@@ -51,9 +48,9 @@ public class Camera
 
 	readonly float _aspectRatio;
 
+	Vector3 GetCameraTarget() =>
+		Transform.Position + Transform.BasisUnitZ;
+
 	Matrix4x4 GetViewProjectionMatrix() =>
 		GetViewMatrix() * GetProjectionMatrix();
-
-	Vector3 GetLookTarget() =>
-		Position + LookDirection;
 }

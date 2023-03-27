@@ -13,7 +13,7 @@ public class WorldObject
 	}
 
 	public Matrix4x4 GetWorldMatrix() =>
-		Transform.AsWorldMatrix();
+		Transform.GetWorldMatrix();
 
 	public Transform Transform { get; }
 

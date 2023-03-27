@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Flatova.Geometry;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
@@ -25,9 +26,9 @@ public class RenderDevice
 			Vector2 projectedSecond = camera.VertexToScreen( second, worldMatrix, _resolution );
 			Vector2 projectedThird = camera.VertexToScreen( third, worldMatrix, _resolution );
 
-			RenderLine( projectedFirst, projectedSecond, Color.WHITE );
-			RenderLine( projectedSecond, projectedThird, Color.WHITE );
-			RenderLine( projectedThird, projectedFirst, Color.WHITE );
+			RenderScreenLine( projectedFirst, projectedSecond, Color.WHITE );
+			RenderScreenLine( projectedSecond, projectedThird, Color.WHITE );
+			RenderScreenLine( projectedThird, projectedFirst, Color.WHITE );
 
 			DrawCircleV( projectedFirst, 5, Color.RED );
 			DrawCircleV( projectedSecond, 5, Color.RED );
@@ -35,8 +36,29 @@ public class RenderDevice
 		}
 	}
 
+	public void RenderLine( Vector3 a, Vector3 b, Color color, Camera camera )
+	{
+		Vector2 projectedA = camera.WorldToScreen( a, _resolution );
+		Vector2 projectedB = camera.WorldToScreen( b, _resolution );
+
+		RenderScreenLine( projectedA, projectedB, color );
+	}
+
+	public void RenderPixel( Vector3 worldPosition, Color color, Camera camera )
+	{
+		Vector2 projectedPixel = camera.WorldToScreen( worldPosition, _resolution );
+
+		DrawPixel( ( int )projectedPixel.X, ( int )projectedPixel.Y, color );
+	}
+
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
+	public void RenderLineFrom( Vector3 from, Vector3 relativeOffset, Color color, Camera camera ) =>
+		RenderLine( from, from + relativeOffset, color, camera );
+
+	readonly Resolution _resolution;
+
 	// using Bresenham's Line drawing Algorithm
-	public void RenderLine( Vector2 pointA, Vector2 pointB, Color color )
+	void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
 	{
 		int x0 = ( int )pointA.X;
 		int y0 = ( int )pointA.Y;
@@ -75,6 +97,4 @@ public class RenderDevice
 			}
 		}
 	}
-
-	readonly Resolution _resolution;
 }
