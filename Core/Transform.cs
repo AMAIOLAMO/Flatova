@@ -26,9 +26,11 @@ public class Transform
 	public Vector3 Position { get; set; }
 	public Vector3 Rotation { get; set; }
 
-	public Vector3 BasisUnitY => Vector3.UnitY.Transform( GetRotationMatrix() );
-	public Vector3 BasisUnitX => Vector3.UnitX.Transform( GetRotationMatrix() );
-	public Vector3 BasisUnitZ => Vector3.UnitZ.Transform( GetRotationMatrix() );
+	public Vector3 BasisUnitY => Vector3.UnitY.Transform( GetRotationMatrix() ).Normalize();
+	
+	public Vector3 BasisUnitX => Vector3.UnitX.Transform( GetRotationMatrix() ).Normalize();
+	
+	public Vector3 BasisUnitZ => Vector3.UnitZ.Transform( GetRotationMatrix() ).Normalize();
 
 	Matrix4x4 GetTranslationMatrix() =>
 		Matrix4x4.CreateTranslation( Position );

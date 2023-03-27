@@ -63,9 +63,12 @@ public class RenderApplication : IApplication
 		int horizontal = GetKeyAxisStrength( KeyboardKey.KEY_A, KeyboardKey.KEY_D );
 		int depth = GetKeyAxisStrength( KeyboardKey.KEY_S, KeyboardKey.KEY_W );
 
-		int vertical = GetKeyAxisStrength( KeyboardKey.KEY_E, KeyboardKey.KEY_Q );
+		int vertical = GetKeyAxisStrength( KeyboardKey.KEY_Q, KeyboardKey.KEY_E );
 
-		var input = new Vector3( horizontal, vertical, -depth ); // TODO: depth is negated here for convenience, after allowing transform to return basis vectors, remove this
+		// Move using basis vectors
+		Vector3 input = _camera!.Transform.BasisUnitX * horizontal +
+						_camera.Transform.BasisUnitY * vertical +
+						_camera.Transform.BasisUnitZ * depth;
 
 		const int SLOW_DOWN_SPEED = 9;
 		const int ACCELERATE_UP_SPEED = 7;
@@ -77,10 +80,10 @@ public class RenderApplication : IApplication
 
 
 		_camera!.Transform.Position += _cameraVelocity * GetFrameTime();
-		
-		// _rotation -= GetMouseDelta().X * GetFrameTime() * 0.1f;
-		//
-		// _camera.Transform = new Vector3( float.Sin( _rotation ), 0, float.Cos( _rotation ) );
+
+		_rotation -= GetMouseDelta().X * GetFrameTime() * 0.1f;
+
+		_camera.Transform.Rotation = Vector3.UnitY * _rotation;
 	}
 
 	static int GetKeyAxisStrength( KeyboardKey negativeKey, KeyboardKey positiveKey )

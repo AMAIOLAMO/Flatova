@@ -57,8 +57,10 @@ public class RenderDevice
 
 	readonly Resolution _resolution;
 
+	// TODO: moved RenderScreenLine method into another class
+
 	// using Bresenham's Line drawing Algorithm
-	void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
+	static void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
 	{
 		int x0 = ( int )pointA.X;
 		int y0 = ( int )pointA.Y;
