@@ -12,7 +12,7 @@ public class RenderApplication : IApplication
 	{
 		var resolution = new Resolution( GetScreenWidth(), GetScreenHeight() );
 
-		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
+		_device = new RenderDevice<Color>( resolution, new RayLibCanvasRenderer() );
 
 		_centerMesh = new WorldObject( new CubeMesh(), new Transform() );
 		_sideMesh = new WorldObject( new CubeMesh(), new Transform() );
@@ -41,8 +41,8 @@ public class RenderApplication : IApplication
 
 		DrawText( $"Camera Position: {_camera!.Transform.Position.ToString( "0.00" )}", 0, 20, 17, Color.GOLD );
 
-		_device!.RenderObject( _centerMesh!, _camera! );
-		_device!.RenderObject( _sideMesh!, _camera! );
+		_device!.RenderObject( _centerMesh!, Color.WHITE, _camera! );
+		_device!.RenderObject( _sideMesh!, Color.BLUE, _camera! );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;
@@ -51,7 +51,7 @@ public class RenderApplication : IApplication
 
 	Camera? _camera;
 
-	IRenderDevice? _device;
+	IRenderDevice<Color>? _device;
 
 	WorldObject? _centerMesh;
 	WorldObject? _sideMesh;
@@ -102,7 +102,7 @@ public class RenderApplication : IApplication
 		return resultStrength;
 	}
 }
-public class RayLibCanvasRenderer : ICanvasRenderer
+public class RayLibCanvasRenderer : ICanvasRenderer<Color>
 {
 	public void DrawPixel( int x, int y, Color color ) =>
 		Raylib.DrawPixel( x, y, color );

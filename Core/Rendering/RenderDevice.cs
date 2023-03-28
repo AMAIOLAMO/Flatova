@@ -1,19 +1,37 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Flatova.Geometry;
-using Raylib_cs;
 
 namespace Flatova.Rendering;
 
-public class RenderDevice : IRenderDevice
+public class RenderDevice<TColor> : IRenderDevice<TColor>
 {
-	public RenderDevice( Resolution resolution, ICanvasRenderer canvasRenderer )
+	public RenderDevice( Resolution resolution, ICanvasRenderer<TColor> canvasRenderer )
 	{
 		_resolution = resolution;
 		_canvasRenderer = canvasRenderer;
 	}
 
-	public void RenderObject( WorldObject renderingObject, Camera camera )
+	public void RenderLine3D( Vector3 from, Vector3 to, TColor color, Camera camera )
+	{
+		Vector2 projectedA = camera.WorldToScreen( from, _resolution );
+		Vector2 projectedB = camera.WorldToScreen( to, _resolution );
+
+		RenderScreenLine( projectedA, projectedB, color );
+	}
+
+	public void RenderPixel3D( Vector3 worldPosition, TColor color, Camera camera )
+	{
+		Vector2 projectedPixel = camera.WorldToScreen( worldPosition, _resolution );
+
+		_canvasRenderer.DrawPixel( ( int )projectedPixel.X, ( int )projectedPixel.Y, color );
+	}
+
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
+	public void RenderLineFrom3D( Vector3 from, Vector3 relativeOffset, TColor color, Camera camera ) =>
+		RenderLine3D( from, from + relativeOffset, color, camera );
+
+	public void RenderObject( WorldObject renderingObject, TColor color, Camera camera )
 	{
 		Matrix4x4 worldMatrix = renderingObject.GetWorldMatrix();
 
@@ -30,37 +48,15 @@ public class RenderDevice : IRenderDevice
 			Vector2 projectedSecond = camera.VertexToScreen( second, worldMatrix, _resolution );
 			Vector2 projectedThird = camera.VertexToScreen( third, worldMatrix, _resolution );
 
-			Color drawColor = index % 2 == 0 ?
-				Color.WHITE : new Color( 150, 150, 150, 150 );
-
-			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, drawColor );
+			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, color );
 		}
 	}
 
-	public void RenderLine3D( Vector3 from, Vector3 to, Color color, Camera camera )
-	{
-		Vector2 projectedA = camera.WorldToScreen( from, _resolution );
-		Vector2 projectedB = camera.WorldToScreen( to, _resolution );
-
-		RenderScreenLine( projectedA, projectedB, color );
-	}
-
-	public void RenderPixel3D( Vector3 worldPosition, Color color, Camera camera )
-	{
-		Vector2 projectedPixel = camera.WorldToScreen( worldPosition, _resolution );
-
-		_canvasRenderer.DrawPixel( ( int )projectedPixel.X, ( int )projectedPixel.Y, color );
-	}
-
-	[MethodImpl( MethodImplOptions.AggressiveInlining )]
-	public void RenderLineFrom3D( Vector3 from, Vector3 relativeOffset, Color color, Camera camera ) =>
-		RenderLine3D( from, from + relativeOffset, color, camera );
-
 	readonly Resolution _resolution;
 
-	readonly ICanvasRenderer _canvasRenderer;
+	readonly ICanvasRenderer<TColor> _canvasRenderer;
 
-	void RenderScreenTriangle3D( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	void RenderScreenTriangle3D( Vector2 p1, Vector2 p2, Vector2 p3, TColor color )
 	{
 		// Sort points using Y axis with order from top to bottom:
 		// p1 -> p2 -> p3
@@ -75,7 +71,7 @@ public class RenderDevice : IRenderDevice
 			RenderTriangleWhereP2LeftSide( p1, p2, p3, color );
 	}
 
-	void RenderTriangleWhereP2LeftSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	void RenderTriangleWhereP2LeftSide( Vector2 p1, Vector2 p2, Vector2 p3, TColor color )
 	{
 		for ( int y = ( int )p1.Y; y <= ( int )p3.Y; y++ )
 			if ( y < p2.Y )
@@ -84,7 +80,7 @@ public class RenderDevice : IRenderDevice
 				RenderScreenScanLine( y, p2, p3, p1, p3, color );
 	}
 
-	void RenderTriangleWhereP2RightSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	void RenderTriangleWhereP2RightSide( Vector2 p1, Vector2 p2, Vector2 p3, TColor color )
 	{
 		for ( int y = ( int )p1.Y; y <= ( int )p3.Y; y++ )
 			if ( y < p2.Y )
@@ -107,7 +103,7 @@ public class RenderDevice : IRenderDevice
 
 
 	// TODO: moved RenderScreenLine method into another class
-	void RenderScreenScanLine( int y, Vector2 lineAStart, Vector2 lineAEnd, Vector2 lineBStart, Vector2 lineBEnd, Color color )
+	void RenderScreenScanLine( int y, Vector2 lineAStart, Vector2 lineAEnd, Vector2 lineBStart, Vector2 lineBEnd, TColor color )
 	{
 		float startXStepPerY = Math.Abs( lineAStart.Y - lineAEnd.Y ) > float.Epsilon ? ( y - lineAStart.Y ) / ( lineAEnd.Y - lineAStart.Y ) : 1;
 		float endXStepPerY = Math.Abs( lineBStart.Y - lineBEnd.Y ) > float.Epsilon ? ( y - lineBStart.Y ) / ( lineBEnd.Y - lineBStart.Y ) : 1;
@@ -121,7 +117,7 @@ public class RenderDevice : IRenderDevice
 
 
 	// using Bresenham's Line drawing Algorithm
-	void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
+	void RenderScreenLine( Vector2 pointA, Vector2 pointB, TColor color )
 	{
 		int x0 = ( int )pointA.X;
 		int y0 = ( int )pointA.Y;
