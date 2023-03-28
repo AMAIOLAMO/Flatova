@@ -11,7 +11,7 @@ public class Mesh
 		_triangles = triangles;
 	}
 
-	public (Vector3 first, Vector3 second, Vector3 third) GetTriangleVertices( Face face )
+	public (Vector3 first, Vector3 second, Vector3 third) GetFaceVertices( Face face )
 	{
 		Vector3 first = Vertices[ face.First ];
 		Vector3 second = Vertices[ face.Second ];

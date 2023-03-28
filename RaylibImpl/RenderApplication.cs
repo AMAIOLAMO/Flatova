@@ -28,7 +28,7 @@ public class RenderApplication : IApplication
 
 		Vector3 basisUnit = _sideMesh.Transform.BasisUnitX;
 
-		_device!.RenderLineFrom( _sideMesh.Transform.Position, basisUnit, Color.GREEN, _camera! );
+		_device!.RenderLineFrom2D( _sideMesh.Transform.Position, basisUnit, Color.GREEN, _camera! );
 
 		UpdateCameraMovement();
 	}
@@ -56,7 +56,8 @@ public class RenderApplication : IApplication
 	WorldObject? _centerMesh;
 	WorldObject? _sideMesh;
 
-	float _rotation;
+	float _rotationX;
+	float _rotationY;
 
 	void UpdateCameraMovement()
 	{
@@ -81,9 +82,11 @@ public class RenderApplication : IApplication
 
 		_camera!.Transform.Position += _cameraVelocity * GetFrameTime();
 
-		_rotation -= GetMouseDelta().X * GetFrameTime() * 0.1f;
+		_rotationX -= GetMouseDelta().X * GetFrameTime() * 0.1f;
+		_rotationY -= GetMouseDelta().Y * GetFrameTime() * 0.1f;
 
-		_camera.Transform.Rotation = Vector3.UnitY * _rotation;
+		_camera.Transform.Rotation = Vector3.UnitY * _rotationX;
+		_camera.Transform.Rotation += Vector3.UnitX * _rotationY;
 	}
 
 	static int GetKeyAxisStrength( KeyboardKey negativeKey, KeyboardKey positiveKey )
