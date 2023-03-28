@@ -2,14 +2,16 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Flatova.Geometry;
 using Raylib_cs;
-using static Raylib_cs.Raylib;
 
 namespace Flatova.Rendering;
 
-public class RenderDevice
+public class RenderDevice : IRenderDevice
 {
-	public RenderDevice( Resolution resolution ) =>
+	public RenderDevice( Resolution resolution, ICanvasRenderer canvasRenderer )
+	{
 		_resolution = resolution;
+		_canvasRenderer = canvasRenderer;
+	}
 
 	public void RenderObject( WorldObject renderingObject, Camera camera )
 	{
@@ -35,10 +37,10 @@ public class RenderDevice
 		}
 	}
 
-	public void RenderLine3D( Vector3 a, Vector3 b, Color color, Camera camera )
+	public void RenderLine3D( Vector3 from, Vector3 to, Color color, Camera camera )
 	{
-		Vector2 projectedA = camera.WorldToScreen( a, _resolution );
-		Vector2 projectedB = camera.WorldToScreen( b, _resolution );
+		Vector2 projectedA = camera.WorldToScreen( from, _resolution );
+		Vector2 projectedB = camera.WorldToScreen( to, _resolution );
 
 		RenderScreenLine( projectedA, projectedB, color );
 	}
@@ -47,16 +49,18 @@ public class RenderDevice
 	{
 		Vector2 projectedPixel = camera.WorldToScreen( worldPosition, _resolution );
 
-		DrawPixel( ( int )projectedPixel.X, ( int )projectedPixel.Y, color );
+		_canvasRenderer.DrawPixel( ( int )projectedPixel.X, ( int )projectedPixel.Y, color );
 	}
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
-	public void RenderLineFrom2D( Vector3 from, Vector3 relativeOffset, Color color, Camera camera ) =>
+	public void RenderLineFrom3D( Vector3 from, Vector3 relativeOffset, Color color, Camera camera ) =>
 		RenderLine3D( from, from + relativeOffset, color, camera );
 
 	readonly Resolution _resolution;
 
-	static void RenderScreenTriangle3D( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	readonly ICanvasRenderer _canvasRenderer;
+
+	void RenderScreenTriangle3D( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
 	{
 		// Sort points using Y axis with order from top to bottom:
 		// p1 -> p2 -> p3
@@ -71,7 +75,7 @@ public class RenderDevice
 			RenderTriangleWhereP2LeftSide( p1, p2, p3, color );
 	}
 
-	static void RenderTriangleWhereP2LeftSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	void RenderTriangleWhereP2LeftSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
 	{
 		for ( int y = ( int )p1.Y; y <= ( int )p3.Y; y++ )
 			if ( y < p2.Y )
@@ -80,7 +84,7 @@ public class RenderDevice
 				RenderScreenScanLine( y, p2, p3, p1, p3, color );
 	}
 
-	static void RenderTriangleWhereP2RightSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
+	void RenderTriangleWhereP2RightSide( Vector2 p1, Vector2 p2, Vector2 p3, Color color )
 	{
 		for ( int y = ( int )p1.Y; y <= ( int )p3.Y; y++ )
 			if ( y < p2.Y )
@@ -89,7 +93,7 @@ public class RenderDevice
 				RenderScreenScanLine( y, p1, p3, p2, p3, color );
 	}
 
-	static void SortScreenPointsByY( ref Vector2 p1, ref Vector2 p2, ref Vector2 p3 )
+	void SortScreenPointsByY( ref Vector2 p1, ref Vector2 p2, ref Vector2 p3 )
 	{
 		if ( p1.Y > p2.Y )
 			( p1, p2 ) = ( p2, p1 );
@@ -103,7 +107,7 @@ public class RenderDevice
 
 
 	// TODO: moved RenderScreenLine method into another class
-	static void RenderScreenScanLine( int y, Vector2 lineAStart, Vector2 lineAEnd, Vector2 lineBStart, Vector2 lineBEnd, Color color )
+	void RenderScreenScanLine( int y, Vector2 lineAStart, Vector2 lineAEnd, Vector2 lineBStart, Vector2 lineBEnd, Color color )
 	{
 		float startXStepPerY = Math.Abs( lineAStart.Y - lineAEnd.Y ) > float.Epsilon ? ( y - lineAStart.Y ) / ( lineAEnd.Y - lineAStart.Y ) : 1;
 		float endXStepPerY = Math.Abs( lineBStart.Y - lineBEnd.Y ) > float.Epsilon ? ( y - lineBStart.Y ) / ( lineBEnd.Y - lineBStart.Y ) : 1;
@@ -112,12 +116,12 @@ public class RenderDevice
 		int endX = ( int )MathUtils.Lerp( lineBStart.X, lineBEnd.X, endXStepPerY );
 
 		for ( int x = startX; x < endX; x++ )
-			DrawPixel( x, y, color );
+			_canvasRenderer.DrawPixel( x, y, color );
 	}
 
 
 	// using Bresenham's Line drawing Algorithm
-	static void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
+	void RenderScreenLine( Vector2 pointA, Vector2 pointB, Color color )
 	{
 		int x0 = ( int )pointA.X;
 		int y0 = ( int )pointA.Y;
@@ -135,7 +139,7 @@ public class RenderDevice
 
 		while ( true )
 		{
-			DrawPixel( x0, y0, color );
+			_canvasRenderer.DrawPixel( x0, y0, color );
 
 			if ( x0 == x1 && y0 == y1 )
 				break;

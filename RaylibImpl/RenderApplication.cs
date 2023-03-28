@@ -12,7 +12,7 @@ public class RenderApplication : IApplication
 	{
 		var resolution = new Resolution( GetScreenWidth(), GetScreenHeight() );
 
-		_device = new RenderDevice( resolution );
+		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
 
 		_centerMesh = new WorldObject( new CubeMesh(), new Transform() );
 		_sideMesh = new WorldObject( new CubeMesh(), new Transform() );
@@ -28,7 +28,7 @@ public class RenderApplication : IApplication
 
 		Vector3 basisUnit = _sideMesh.Transform.BasisUnitX;
 
-		_device!.RenderLineFrom2D( _sideMesh.Transform.Position, basisUnit, Color.GREEN, _camera! );
+		_device!.RenderLineFrom3D( _sideMesh.Transform.Position, basisUnit, Color.GREEN, _camera! );
 
 		UpdateCameraMovement();
 	}
@@ -51,7 +51,7 @@ public class RenderApplication : IApplication
 
 	Camera? _camera;
 
-	RenderDevice? _device;
+	IRenderDevice? _device;
 
 	WorldObject? _centerMesh;
 	WorldObject? _sideMesh;
@@ -101,4 +101,9 @@ public class RenderApplication : IApplication
 
 		return resultStrength;
 	}
+}
+public class RayLibCanvasRenderer : ICanvasRenderer
+{
+	public void DrawPixel( int x, int y, Color color ) =>
+		Raylib.DrawPixel( x, y, color );
 }
