@@ -1,15 +1,16 @@
 using System.Numerics;
-
 using Flatova.Geometry;
 
 namespace Flatova;
 
 public class WorldObject
 {
-	public WorldObject( Mesh mesh, Transform transform )
+	public WorldObject( Mesh mesh ) : this( Transform.Identity, mesh ) { }
+
+	public WorldObject( Transform transform, Mesh mesh )
 	{
-		Mesh = mesh;
 		Transform = transform;
+		Mesh = mesh;
 	}
 
 	public Matrix4x4 GetWorldMatrix() =>

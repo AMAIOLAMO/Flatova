@@ -4,10 +4,6 @@ namespace Flatova;
 
 public class Transform
 {
-	public Transform() : this( Vector3.Zero, Vector3.Zero )
-	{
-	}
-
 	public Transform( Vector3 position, Vector3 rotation )
 	{
 		Position = position;
@@ -21,15 +17,17 @@ public class Transform
 		GetRotationMatrix() * GetTranslationMatrix();
 
 	public Matrix4x4 GetRotationMatrix() =>
-		Matrix4x4Utils.FromEuler( Rotation );
+		Matrix4X4Utils.FromEuler( Rotation );
+
+	public static Transform Identity => new( Vector3.Zero, Vector3.Zero );
 
 	public Vector3 Position { get; set; }
 	public Vector3 Rotation { get; set; }
 
 	public Vector3 BasisUnitY => Vector3.UnitY.Transform( GetRotationMatrix() ).Normalize();
-	
+
 	public Vector3 BasisUnitX => Vector3.UnitX.Transform( GetRotationMatrix() ).Normalize();
-	
+
 	public Vector3 BasisUnitZ => Vector3.UnitZ.Transform( GetRotationMatrix() ).Normalize();
 
 	Matrix4x4 GetTranslationMatrix() =>
@@ -66,9 +64,4 @@ public class Transform
 	// public static Transform FromRotation( Quaternion rotation ) => new( Vector3.Zero, rotation );
 	//
 	// public static Transform FromEuler( Vector3 eulerAngles ) => new( Vector3.Zero, QuaternionUtils.FromEuler( eulerAngles ) );
-}
-public static class Matrix4x4Utils
-{
-	public static Matrix4x4 FromEuler( Vector3 eulerAngles ) =>
-		Matrix4x4.CreateFromYawPitchRoll( eulerAngles.Y, eulerAngles.X, eulerAngles.Z );
 }

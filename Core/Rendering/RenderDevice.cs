@@ -115,7 +115,7 @@ public class RenderDevice : IRenderDevice<Color>
 
 			float currentDepth = MathF.Abs( MathUtils.Lerp( startDepth, endDepth, percentage ) );
 
-			if ( !_depthMap.IsCloser( x, y, currentDepth ) ) // IsDepthCloser( x, y, currentDepth )
+			if ( !_depthMap.IsCloser( x, y, currentDepth ) )
 				continue;
 			// else
 

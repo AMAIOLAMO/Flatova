@@ -3,6 +3,8 @@ using System.Runtime.CompilerServices;
 
 namespace Flatova.Rendering;
 
+// TODO: Currently Depth Map will never check if the point is contained
+
 /// <summary>
 ///     Represents a float map for depth (similar to a float 2 dimensional array),
 ///     Currently un-resizable

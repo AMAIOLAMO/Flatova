@@ -2,7 +2,6 @@ using System.Numerics;
 using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
-
 using static Raylib_cs.Raylib;
 
 namespace Flatova;
@@ -15,11 +14,14 @@ public class RenderApplication : IApplication
 
 		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
 
-		_centerMesh = new WorldObject( new CubeMesh(), new Transform() );
-		_sideMesh = new WorldObject( new CubeMesh(), new Transform() );
+		_centerMesh = new WorldObject( new CubeMesh() );
+		_sideMesh = new WorldObject( new CubeMesh() );
 
-		// Understand how camera works here
-		_camera = new Camera( Transform.FromPosition( Vector3.UnitZ * 10f ), 60 * DEG2RAD, resolution.AspectRatio, 0.1f, 1.0f );
+		_camera = new Camera
+		(
+			Transform.FromPosition( Vector3.UnitZ * 10f ),
+			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 1.0f
+		);
 	}
 
 	public void Update()
@@ -32,14 +34,14 @@ public class RenderApplication : IApplication
 
 	public void Draw()
 	{
-		ClearBackground( Color.BLACK );
+		ClearBackground( Color.BLUE );
 
 		DrawFPS( 0, 0 );
 
 		DrawText( $"Camera Position: {_camera!.Transform.Position.ToString( "0.00" )}", 0, 20, 17, Color.GOLD );
 
 		_device!.ClearDepthBuffer();
-		
+
 		_device!.RenderObject( _centerMesh!, _camera! );
 		_device!.RenderObject( _sideMesh!, _camera! );
 	}

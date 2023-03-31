@@ -8,7 +8,7 @@ public class TransformTests
 	[Test]
 	public void ConstructPositionEqualZero()
 	{
-		var transform = new Transform();
+		Transform transform = Transform.Identity;
 
 		Assert.That( transform.Position, Is.EqualTo( Vector3.Zero ) );
 	}
@@ -16,7 +16,7 @@ public class TransformTests
 	[Test]
 	public void ConstructRotationEqualsZero()
 	{
-		var transform = new Transform();
+		Transform transform = Transform.Identity;
 
 		Assert.That( transform.Rotation, Is.EqualTo( Vector3.Zero ) );
 	}
@@ -40,7 +40,7 @@ public class TransformTests
 	[Test]
 	public void ConstructBasisUnitX_1_0_0()
 	{
-		var transform = new Transform();
+		Transform transform = Transform.Identity;
 
 		Assert.That( transform.BasisUnitX, Is.EqualTo( Vector3.UnitX ) );
 	}
@@ -48,7 +48,7 @@ public class TransformTests
 	[Test]
 	public void ConstructBasisUnitY_0_1_0()
 	{
-		var transform = new Transform();
+		Transform transform = Transform.Identity;
 
 		Assert.That( transform.BasisUnitY, Is.EqualTo( Vector3.UnitY ) );
 	}
@@ -56,7 +56,7 @@ public class TransformTests
 	[Test]
 	public void ConstructBasisUnitZ_0_0_1()
 	{
-		var transform = new Transform();
+		Transform transform = Transform.Identity;
 
 		Assert.That( transform.BasisUnitZ, Is.EqualTo( Vector3.UnitZ ) );
 	}
@@ -73,7 +73,7 @@ public class TransformTests
 	public void RotationMatrix()
 	{
 		Transform transform = Transform.FromRotation( new Vector3( 20, 123, 53 ) );
-		
+
 		Assert.That( transform.GetRotationMatrix(), Is.EqualTo( Matrix4x4.CreateFromYawPitchRoll( 123f, 20f, 53f ) ) );
 	}
 }

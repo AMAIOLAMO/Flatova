@@ -4,7 +4,12 @@ namespace Flatova;
 
 public class Camera
 {
-	// TODO: TOO MANY PARAMS!
+	// TODO: Consider putting these settings into another data structure
+	public Camera( float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance ) :
+		this( Transform.Identity, fovRadians, aspectRatio, nearPlaneDistance, farPlaneDistance )
+	{
+	}
+
 	public Camera( Transform transform, float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
 	{
 		_fovRadians = fovRadians;
@@ -35,12 +40,10 @@ public class Camera
 		);
 	}
 
-	// TODO: allow camera to rotate on yaw
 	public Matrix4x4 GetViewMatrix() =>
 		Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
 
 	public Transform Transform { get; }
-
 
 	readonly float _nearPlaneDistance;
 	readonly float _farPlaneDistance;
