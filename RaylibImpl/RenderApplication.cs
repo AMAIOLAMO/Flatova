@@ -17,6 +17,8 @@ public class RenderApplication : IApplication
 		_centerMesh = new WorldObject( new CubeMesh() );
 		_sideMesh = new WorldObject( new CubeMesh() );
 
+		_sideMesh.Transform.Scale = new Vector3( 2f, 1f, .5f );
+
 		_camera = new Camera
 		(
 			Transform.FromPosition( Vector3.UnitZ * 10f ),

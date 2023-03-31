@@ -27,7 +27,12 @@ public class RenderDevice : IRenderDevice<Color>
 		{
 			Face face = triangles[ index ];
 			// Vertices 
-			( Vector3 first, Vector3 second, Vector3 third ) = renderingObject.Mesh.GetFaceVertices( face );
+
+			renderingObject.Mesh.GetFaceVertices
+			(
+				face,
+				out Vector3 first, out Vector3 second, out Vector3 third
+			);
 
 			Vector3 projectedFirst = camera.VertexProjectDepthResolution( first, worldMatrix, _resolution );
 			Vector3 projectedSecond = camera.VertexProjectDepthResolution( second, worldMatrix, _resolution );

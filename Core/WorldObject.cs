@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Flatova.Geometry;
 
 namespace Flatova;
@@ -13,6 +14,7 @@ public class WorldObject
 		Mesh = mesh;
 	}
 
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public Matrix4x4 GetWorldMatrix() =>
 		Transform.GetWorldMatrix();
 

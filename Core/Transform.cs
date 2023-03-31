@@ -4,23 +4,36 @@ namespace Flatova;
 
 public class Transform
 {
-	public Transform( Vector3 position, Vector3 rotation )
+	public Transform( Vector3 position, Vector3 rotation ) : this( position, rotation, Vector3.One )
+	{
+	}
+
+	public Transform( Vector3 position, Vector3 rotation, Vector3 scale )
 	{
 		Position = position;
 		Rotation = rotation;
+		Scale = scale;
 	}
 
 	/// <summary>
 	///     Returns this transform as a world matrix using <see cref="Position" /> and <see cref="Rotation" />
 	/// </summary>
 	public Matrix4x4 GetWorldMatrix() =>
-		GetRotationMatrix() * GetTranslationMatrix();
+		GetScaleMatrix() * GetRotationMatrix() * GetTranslationMatrix();
 
 	public Matrix4x4 GetRotationMatrix() =>
 		Matrix4X4Utils.FromEuler( Rotation );
 
-	public static Transform Identity => new( Vector3.Zero, Vector3.Zero );
+	public Matrix4x4 GetScaleMatrix() =>
+		Matrix4x4.CreateScale( Scale );
 
+	public Matrix4x4 GetTranslationMatrix() =>
+		Matrix4x4.CreateTranslation( Position );
+
+
+	public static Transform Identity => new( Vector3.Zero, Vector3.Zero, Vector3.One );
+
+	public Vector3 Scale    { get; set; } = Vector3.One;
 	public Vector3 Position { get; set; }
 	public Vector3 Rotation { get; set; }
 
@@ -30,13 +43,11 @@ public class Transform
 
 	public Vector3 BasisUnitZ => Vector3.UnitZ.Transform( GetRotationMatrix() ).Normalize();
 
-	Matrix4x4 GetTranslationMatrix() =>
-		Matrix4x4.CreateTranslation( Position );
-
 
 	public static Transform FromPosition( Vector3 position ) => new( position, Vector3.Zero );
 
 	public static Transform FromRotation( Vector3 rotation ) => new( Vector3.Zero, rotation );
+	public static Transform FromScale( Vector3 scale ) => new( Vector3.Zero, Vector3.Zero, scale );
 
 	// TODO: Quaternion Implementation (not done yet)
 	// public Transform() : this( Vector3.Zero, Quaternion.Identity )
