@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 public readonly struct Resolution
 {
@@ -7,6 +8,10 @@ public readonly struct Resolution
 		Width = width;
 		Height = height;
 	}
+
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
+	public bool ContainsPixel( int x, int y ) =>
+		x >= 0 && x < Width && y >= 0 && y < Height;
 
 	public float AspectRatio => ( float )Width / Height;
 

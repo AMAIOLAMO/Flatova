@@ -2,6 +2,7 @@ using System.Numerics;
 using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
+
 using static Raylib_cs.Raylib;
 
 namespace Flatova;
@@ -12,7 +13,7 @@ public class RenderApplication : IApplication
 	{
 		var resolution = new Resolution( GetScreenWidth(), GetScreenHeight() );
 
-		_device = new RenderDevice<Color>( resolution, new RayLibCanvasRenderer() );
+		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
 
 		_centerMesh = new WorldObject( new CubeMesh(), new Transform() );
 		_sideMesh = new WorldObject( new CubeMesh(), new Transform() );
@@ -26,10 +27,6 @@ public class RenderApplication : IApplication
 		_sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
 		_sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
 
-		Vector3 basisUnit = _sideMesh.Transform.BasisUnitX;
-
-		_device!.RenderLineFrom3D( _sideMesh.Transform.Position, basisUnit, Color.GREEN, _camera! );
-
 		UpdateCameraMovement();
 	}
 
@@ -41,8 +38,10 @@ public class RenderApplication : IApplication
 
 		DrawText( $"Camera Position: {_camera!.Transform.Position.ToString( "0.00" )}", 0, 20, 17, Color.GOLD );
 
-		_device!.RenderObject( _centerMesh!, Color.WHITE, _camera! );
-		_device!.RenderObject( _sideMesh!, Color.BLUE, _camera! );
+		_device!.ClearDepthBuffer();
+		
+		_device!.RenderObject( _centerMesh!, _camera! );
+		_device!.RenderObject( _sideMesh!, _camera! );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;

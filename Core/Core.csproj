@@ -7,4 +7,10 @@
         <RootNamespace>Flatova</RootNamespace>
     </PropertyGroup>
 
+    <ItemGroup>
+      <Reference Include="Raylib-cs">
+        <HintPath>..\..\..\..\..\..\..\home\cxredix\.nuget\packages\raylib-cs\4.2.0.2\lib\net6.0\Raylib-cs.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
 </Project>

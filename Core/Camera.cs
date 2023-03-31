@@ -19,19 +19,20 @@ public class Camera
 	public Matrix4x4 GetProjectionMatrix() =>
 		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
 
-	public Vector2 VertexToScreen( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
-		WorldToScreen( vertex.Transform( worldMatrix ), resolution );
+	public Vector3 VertexProjectDepthResolution( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
+		WorldProjectDepthResolution( vertex.Transform( worldMatrix ), resolution );
 
-	public Vector2 WorldToScreen( Vector3 worldPoint, Resolution resolution )
+	public Vector3 WorldProjectDepthResolution( Vector3 worldPoint, Resolution resolution )
 	{
-		Vector4 projectedScreenPercent = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
+		Vector4 projectedPoint = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
 
 		// requires specific perspective division system.Numerics' transform method does not do it
-		return new Vector2
+		return new Vector3
 		(
-			projectedScreenPercent.X / projectedScreenPercent.W * resolution.Width,
-			projectedScreenPercent.Y / projectedScreenPercent.W * resolution.Height
-		) + resolution.Half;
+			projectedPoint.X / projectedPoint.W * resolution.Width + resolution.HalfWidth,
+			projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight,
+			projectedPoint.Z
+		);
 	}
 
 	// TODO: allow camera to rotate on yaw
