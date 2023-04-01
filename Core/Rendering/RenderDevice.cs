@@ -21,11 +21,11 @@ public class RenderDevice : IRenderDevice<Color>
 	{
 		Matrix4x4 worldMatrix = renderingObject.GetWorldMatrix();
 
-		ReadOnlySpan<Face> triangles = renderingObject.Mesh.Triangles;
+		Face[] faces = renderingObject.Mesh.Faces;
 
-		for ( int index = 0; index < triangles.Length; index++ )
+		for ( int index = 0; index < faces.Length; index++ )
 		{
-			Face face = triangles[ index ];
+			Face face = faces[ index ];
 			// Vertices 
 
 			renderingObject.Mesh.GetFaceVertices
@@ -37,6 +37,15 @@ public class RenderDevice : IRenderDevice<Color>
 			Vector3 projectedFirst = camera.VertexProjectDepthResolution( first, worldMatrix, _resolution );
 			Vector3 projectedSecond = camera.VertexProjectDepthResolution( second, worldMatrix, _resolution );
 			Vector3 projectedThird = camera.VertexProjectDepthResolution( third, worldMatrix, _resolution );
+
+			Vector3 faceNormal = FaceUtils.GetNormal( projectedFirst, projectedSecond, projectedThird );
+
+			float facingTowardsCamera = faceNormal.Dot( camera.Transform.BasisUnitZ );
+
+			// faces which are not facing the camera, will be ignored
+			if ( facingTowardsCamera <= 0 )
+				continue;
+
 
 			Color faceColor = index % 2 == 0 ?
 				Color.WHITE :

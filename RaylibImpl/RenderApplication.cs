@@ -2,6 +2,7 @@ using System.Numerics;
 using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
+
 using static Raylib_cs.Raylib;
 
 namespace Flatova;
@@ -107,6 +108,30 @@ public class RenderApplication : IApplication
 }
 public class RayLibCanvasRenderer : ICanvasRenderer<Color>
 {
-	public void DrawPixel( int x, int y, Color color ) =>
+	// public RayLibCanvasRenderer( Resolution resolution )
+	// {
+	// 	_colors = new Color[ resolution.Width * resolution.Height ];
+	// 	_texture = new Texture2D();
+	// 	_width = resolution.Width;
+	// }
+
+	public void DrawPixel( int x, int y, Color color )
+	{
+		// _colors[ x + y * _width ] = color;
+
 		Raylib.DrawPixel( x, y, color );
+	}
+	//
+	// public void Render()
+	// {
+	// 	UpdateTexture();
+	// 	
+	// 	DrawTexture();
+	// }
+	//
+	// Texture2D _texture;
+	//
+	// int _width;
+	//
+	// Color[] _colors;
 }

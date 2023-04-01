@@ -5,11 +5,10 @@ namespace Flatova.Geometry;
 
 public class Mesh
 {
-	public Mesh( Vector3[] vertices, Face[] triangles )
+	public Mesh( Vector3[] vertices, Face[] faces )
 	{
-		_vertices = vertices;
-
-		_triangles = triangles;
+		Vertices = vertices;
+		Faces = faces;
 	}
 
 	public void GetFaceVertices( in Face face, out Vector3 first, out Vector3 second, out Vector3 third )
@@ -17,15 +16,6 @@ public class Mesh
 		first = Vertices[ face.First ];
 		second = Vertices[ face.Second ];
 		third = Vertices[ face.Third ];
-	}
-
-	public (Vector3 first, Vector3 second, Vector3 third) GetFaceVertices( Face face )
-	{
-		Vector3 first = Vertices[ face.First ];
-		Vector3 second = Vertices[ face.Second ];
-		Vector3 third = Vertices[ face.Third ];
-
-		return ( first, second, third );
 	}
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
@@ -37,11 +27,7 @@ public class Mesh
 			Vertices[ face.Third ]
 		);
 
-	public ReadOnlySpan<Vector3> Vertices => new( _vertices );
+	public Vector3[] Vertices { get; }
 
-	public ReadOnlySpan<Face> Triangles => new( _triangles );
-
-	readonly Vector3[] _vertices;
-
-	readonly Face[] _triangles;
+	public Face[] Faces { get; }
 }
