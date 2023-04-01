@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Flatova;
 
@@ -37,6 +38,18 @@ public class Camera
 			projectedPoint.X / projectedPoint.W * resolution.Width + resolution.HalfWidth,
 			projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight,
 			projectedPoint.Z
+		);
+	}
+
+	public Vector2 WorldProjectResolution( Vector3 worldPoint, Resolution resolution )
+	{
+		Vector4 projectedPoint = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
+
+		// requires specific perspective division system.Numerics' transform method does not do it
+		return new Vector2
+		(
+			projectedPoint.X / projectedPoint.W * resolution.Width + resolution.HalfWidth,
+			projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight
 		);
 	}
 

@@ -34,25 +34,53 @@ public class RenderDevice : IRenderDevice<Color>
 				out Vector3 first, out Vector3 second, out Vector3 third
 			);
 
-			Vector3 projectedFirst = camera.VertexProjectDepthResolution( first, worldMatrix, _resolution );
-			Vector3 projectedSecond = camera.VertexProjectDepthResolution( second, worldMatrix, _resolution );
-			Vector3 projectedThird = camera.VertexProjectDepthResolution( third, worldMatrix, _resolution );
+			Vector3 worldFirst = first.Transform( worldMatrix );
+			Vector3 worldSecond = second.Transform( worldMatrix );
+			Vector3 worldThird = third.Transform( worldMatrix );
 
-			Vector3 faceNormal = FaceUtils.GetNormal( projectedFirst, projectedSecond, projectedThird );
+			Vector3 projectedFirst = camera.WorldProjectDepthResolution( worldFirst, _resolution );
+			Vector3 projectedSecond = camera.WorldProjectDepthResolution( worldSecond, _resolution );
+			Vector3 projectedThird = camera.WorldProjectDepthResolution( worldThird, _resolution );
 
-			float facingTowardsCamera = faceNormal.Dot( camera.Transform.BasisUnitZ );
+			Vector3 projectedFaceNormal = FaceUtils.GetNormal( projectedFirst, projectedSecond, projectedThird );
+
+			float facingTowardsCamera = projectedFaceNormal.Dot( -camera.Transform.BasisUnitZ );
 
 			// faces which are not facing the camera, will be ignored
 			if ( facingTowardsCamera <= 0 )
 				continue;
 
+			// Simple Phong Shading
+			Vector3 worldFaceNormal = FaceUtils.GetNormal( worldFirst, worldSecond, worldThird );
+			Vector3 worldFaceCenter = FaceUtils.GetCenter( worldFirst, worldSecond, worldThird );
 
-			Color faceColor = index % 2 == 0 ?
-				Color.WHITE :
-				new Color( 170, 170, 170, 255 );
+			var lightPosition = new Vector3( 4, 10, 2 );
+
+			Vector3 lightDirection = ( lightPosition - worldFaceCenter ).Normalize();
+
+			float ambientLightingStrength = 0.2f;
+			float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + ambientLightingStrength, 1f );
+			byte shadingByteColor = ( byte )( phongShadingStrength * 255f );
+
+			var faceColor = new Color( shadingByteColor, shadingByteColor, shadingByteColor, ( byte )255 );
+
+			// Color faceColor = index % 2 == 0 ?
+			// 	Color.WHITE :
+			// 	new Color( 170, 170, 170, 255 );
 
 			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, faceColor );
+
+			RenderLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
 		}
+	}
+
+
+	public void RenderLine3D( Vector3 a, Vector3 b, Color color, Camera camera )
+	{
+		Vector2 projectedA = camera.WorldProjectResolution( a, _resolution );
+		Vector2 projectedB = camera.WorldProjectResolution( b, _resolution );
+
+		RenderScreenLine( projectedA, projectedB, color );
 	}
 
 	readonly Resolution _resolution;
@@ -106,7 +134,6 @@ public class RenderDevice : IRenderDevice<Color>
 			( p1, p2 ) = ( p2, p1 );
 	}
 
-
 	// TODO: moved RenderScreenLine method into another class
 	void RenderScreenScanLine( int y, Vector3 lineAStart, Vector3 lineAEnd, Vector3 lineBStart, Vector3 lineBEnd, Color color )
 	{
@@ -129,14 +156,19 @@ public class RenderDevice : IRenderDevice<Color>
 
 			float currentDepth = MathF.Abs( MathUtils.Lerp( startDepth, endDepth, percentage ) );
 
-			if ( !_depthMap.IsCloser( x, y, currentDepth ) )
-				continue;
-			// else
-
-			_canvasRenderer.DrawPixel( x, y, color );
-
-			_depthMap.SetDepth( x, y, currentDepth );
+			DrawDepthPixel( x, y, currentDepth, color );
 		}
+	}
+
+	void DrawDepthPixel( int x, int y, float depth, Color color )
+	{
+		if ( !_depthMap.IsCloser( x, y, depth ) )
+			return;
+		// else
+
+		_canvasRenderer.DrawPixel( x, y, color );
+
+		_depthMap.SetDepth( x, y, depth );
 	}
 
 

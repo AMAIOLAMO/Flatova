@@ -2,7 +2,6 @@ using System.Numerics;
 using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
-
 using static Raylib_cs.Raylib;
 
 namespace Flatova;
@@ -47,6 +46,7 @@ public class RenderApplication : IApplication
 
 		_device!.RenderObject( _centerMesh!, _camera! );
 		_device!.RenderObject( _sideMesh!, _camera! );
+		// _device!.RenderLine3D( Vector3.UnitY * 10, Vector3.UnitY * 10 + _centerMesh!.Transform.BasisUnitY, Color.GREEN, _camera );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;
