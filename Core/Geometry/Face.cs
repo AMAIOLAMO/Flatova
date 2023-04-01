@@ -9,6 +9,9 @@ public readonly struct Face
 		Third = third;
 	}
 
+	public override string ToString() =>
+		$"Face: {First}, {Second}, {Third}";
+
 	public int First { get; }
 
 	public int Second { get; }

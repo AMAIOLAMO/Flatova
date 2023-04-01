@@ -30,4 +30,54 @@ public class Mesh
 	public Vector3[] Vertices { get; }
 
 	public Face[] Faces { get; }
+
+	public static Mesh Load( string filePath )
+	{
+		using FileStream fileStream = File.OpenRead( filePath );
+
+		var reader = new StreamReader( fileStream );
+
+		List<Vector3> vertices = new();
+		List<Face> faces = new();
+
+		while ( !reader.EndOfStream )
+		{
+			string? line = reader.ReadLine();
+
+			if ( line == null )
+				continue;
+
+			if ( line.StartsWith( 'v' ) )
+			{
+				string[] splitLines = line.Split( ' ' );
+
+				var vertex = new Vector3
+				(
+					float.Parse( splitLines[ 1 ] ),
+					float.Parse( splitLines[ 2 ] ),
+					float.Parse( splitLines[ 3 ] )
+				);
+
+				vertices.Add( vertex );
+				// Console.WriteLine( $"vertex: {vertex}" );
+			}
+			else if ( line.StartsWith( 'f' ) )
+			{
+				string[] splitLines = line.Split( ' ' );
+
+				int first = int.Parse( splitLines[ 1 ] ) - 1;
+				int second = int.Parse( splitLines[ 2 ] ) - 1;
+				int third = int.Parse( splitLines[ 3 ] ) - 1;
+
+				var face = new Face
+				(
+					first, second, third
+				);
+
+				faces.Add( face );
+			}
+		}
+
+		return new Mesh( vertices.ToArray(), faces.ToArray() );
+	}
 }

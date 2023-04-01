@@ -37,7 +37,7 @@ public class RenderDevice : IRenderDevice<Color>
 			Vector3 worldFirst = first.Transform( worldMatrix );
 			Vector3 worldSecond = second.Transform( worldMatrix );
 			Vector3 worldThird = third.Transform( worldMatrix );
-
+			
 			Vector3 projectedFirst = camera.WorldProjectDepthResolution( worldFirst, _resolution );
 			Vector3 projectedSecond = camera.WorldProjectDepthResolution( worldSecond, _resolution );
 			Vector3 projectedThird = camera.WorldProjectDepthResolution( worldThird, _resolution );
@@ -51,6 +51,7 @@ public class RenderDevice : IRenderDevice<Color>
 				continue;
 
 			// Simple Phong Shading
+			// TODO: After implementing materials, move this entire thing into materials
 			Vector3 worldFaceNormal = FaceUtils.GetNormal( worldFirst, worldSecond, worldThird );
 			Vector3 worldFaceCenter = FaceUtils.GetCenter( worldFirst, worldSecond, worldThird );
 
@@ -58,15 +59,11 @@ public class RenderDevice : IRenderDevice<Color>
 
 			Vector3 lightDirection = ( lightPosition - worldFaceCenter ).Normalize();
 
-			float ambientLightingStrength = 0.2f;
-			float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + ambientLightingStrength, 1f );
+			const float AMBIENT_LIGHTING_STRENGTH = 0.2f;
+			float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + AMBIENT_LIGHTING_STRENGTH, 1f );
 			byte shadingByteColor = ( byte )( phongShadingStrength * 255f );
 
 			var faceColor = new Color( shadingByteColor, shadingByteColor, shadingByteColor, ( byte )255 );
-
-			// Color faceColor = index % 2 == 0 ?
-			// 	Color.WHITE :
-			// 	new Color( 170, 170, 170, 255 );
 
 			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, faceColor );
 
@@ -135,6 +132,7 @@ public class RenderDevice : IRenderDevice<Color>
 	}
 
 	// TODO: moved RenderScreenLine method into another class
+	// TODO: Implement `Line3D` to hide some of the implementation details
 	void RenderScreenScanLine( int y, Vector3 lineAStart, Vector3 lineAEnd, Vector3 lineBStart, Vector3 lineBEnd, Color color )
 	{
 		float lineAxStepPerY = !MathUtils.AlmostEquals( lineAStart.Y, lineAEnd.Y ) ? ( y - lineAStart.Y ) / ( lineAEnd.Y - lineAStart.Y ) : 1;

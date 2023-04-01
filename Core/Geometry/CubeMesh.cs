@@ -21,28 +21,28 @@ public class CubeMesh : Mesh
 		new Face[]
 		{
 			// Front Face
-			new( 6, 4, 2 ),
-			new( 2, 4, 0 ),
-
-			// Back Face
-			new( 7, 3, 5 ),
-			new( 3, 1, 5 ),
-
-			// Right Face
-			new( 2, 0, 3 ),
-			new( 3, 0, 1 ),
-
-			// Left Face
-			new( 7, 4, 6 ),
-			new( 7, 5, 4 ),
-
-			// Top Face
-			new( 0, 4, 5 ),
-			new( 0, 5, 1 ),
-
-			// Bottom Face
-			new( 2, 7, 6 ),
-			new( 2, 3, 7 )
+			new( 6, 2, 4 ),
+			new( 2, 0, 4 ),
+					    
+			// Back eacF
+			new( 7, 5, 3 ),
+			new( 3, 5, 1 ),
+					    
+			// RightcFa e
+			new( 2, 3, 0 ),
+			new( 3, 1, 0 ),
+					    
+			// Left eacF
+			new( 7, 6, 4 ),
+			new( 7, 4, 5 ),
+					    
+			// Top F cea
+			new( 0, 5, 4 ),
+			new( 0, 1, 5 ),
+					    
+			// Bottoa Fmce
+			new( 2, 6, 7 ),
+			new( 2, 7, 3 )
 		}
 	)
 	{

@@ -10,7 +10,7 @@ public static class FaceUtils
 	/// </summary>
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public static Vector3 GetNormal( Vector3 origin, Vector3 first, Vector3 second ) =>
-		( second - origin ).Cross( first - origin ).Normalize();
+		( first - origin ).Cross( second - origin ).Normalize();
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public static Vector3 GetCenter( Vector3 a, Vector3 b, Vector3 c ) =>

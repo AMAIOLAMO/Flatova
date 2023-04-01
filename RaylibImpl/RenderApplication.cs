@@ -3,6 +3,7 @@ using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
+using Mesh = Flatova.Geometry.Mesh;
 
 namespace Flatova;
 
@@ -16,6 +17,8 @@ public class RenderApplication : IApplication
 
 		_centerMesh = new WorldObject( new CubeMesh() );
 		_sideMesh = new WorldObject( new CubeMesh() );
+
+		_testObj = new WorldObject( Mesh.Load( "test.obj" ) );
 
 		_sideMesh.Transform.Scale = new Vector3( 2f, 1f, .5f );
 
@@ -44,9 +47,8 @@ public class RenderApplication : IApplication
 
 		_device!.ClearDepthBuffer();
 
-		_device!.RenderObject( _centerMesh!, _camera! );
+		_device!.RenderObject( _testObj!, _camera! );
 		_device!.RenderObject( _sideMesh!, _camera! );
-		// _device!.RenderLine3D( Vector3.UnitY * 10, Vector3.UnitY * 10 + _centerMesh!.Transform.BasisUnitY, Color.GREEN, _camera );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;
@@ -59,9 +61,11 @@ public class RenderApplication : IApplication
 
 	WorldObject? _centerMesh;
 	WorldObject? _sideMesh;
+	WorldObject? _testObj;
 
 	float _rotationX;
 	float _rotationY;
+
 
 	void UpdateCameraMovement()
 	{
@@ -108,30 +112,6 @@ public class RenderApplication : IApplication
 }
 public class RayLibCanvasRenderer : ICanvasRenderer<Color>
 {
-	// public RayLibCanvasRenderer( Resolution resolution )
-	// {
-	// 	_colors = new Color[ resolution.Width * resolution.Height ];
-	// 	_texture = new Texture2D();
-	// 	_width = resolution.Width;
-	// }
-
-	public void DrawPixel( int x, int y, Color color )
-	{
-		// _colors[ x + y * _width ] = color;
-
+	public void DrawPixel( int x, int y, Color color ) =>
 		Raylib.DrawPixel( x, y, color );
-	}
-	//
-	// public void Render()
-	// {
-	// 	UpdateTexture();
-	// 	
-	// 	DrawTexture();
-	// }
-	//
-	// Texture2D _texture;
-	//
-	// int _width;
-	//
-	// Color[] _colors;
 }
