@@ -67,7 +67,8 @@ public class RenderDevice : IRenderDevice<Color>
 
 			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, faceColor );
 
-			RenderLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
+			// Debug: Renders face normals
+			// RenderLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
 		}
 	}
 

@@ -3,30 +3,36 @@ using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
-using Mesh = Flatova.Geometry.Mesh;
 
 namespace Flatova;
 
 public class RenderApplication : IApplication
 {
-	public void Initialize()
+	public RenderApplication()
 	{
 		var resolution = new Resolution( GetScreenWidth(), GetScreenHeight() );
 
 		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
 
 		_centerMesh = new WorldObject( new CubeMesh() );
-		_sideMesh = new WorldObject( new CubeMesh() );
 
-		_testObj = new WorldObject( Mesh.Load( "test.obj" ) );
-
-		_sideMesh.Transform.Scale = new Vector3( 2f, 1f, .5f );
+		_sideMesh = new WorldObject( new CubeMesh() )
+		{
+			Transform =
+			{
+				Scale = new Vector3( 2f, 1f, .5f )
+			}
+		};
 
 		_camera = new Camera
 		(
 			Transform.FromPosition( Vector3.UnitZ * 10f ),
 			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 1.0f
 		);
+	}
+
+	public void Initialize()
+	{
 	}
 
 	public void Update()
@@ -47,21 +53,20 @@ public class RenderApplication : IApplication
 
 		_device!.ClearDepthBuffer();
 
-		_device!.RenderObject( _testObj!, _camera! );
-		_device!.RenderObject( _sideMesh!, _camera! );
+		_device!.RenderObject( _sideMesh, _camera );
+		_device!.RenderObject( _centerMesh, _camera );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;
 
+	readonly Camera _camera;
+
+	readonly IRenderDevice<Color> _device;
+
+	readonly WorldObject _sideMesh;
+	readonly WorldObject _centerMesh;
+
 	Vector3 _cameraVelocity = Vector3.Zero;
-
-	Camera? _camera;
-
-	IRenderDevice<Color>? _device;
-
-	WorldObject? _centerMesh;
-	WorldObject? _sideMesh;
-	WorldObject? _testObj;
 
 	float _rotationX;
 	float _rotationY;
