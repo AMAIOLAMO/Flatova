@@ -46,11 +46,27 @@ public class TransformTests
 	}
 
 	[Test]
+	public void RotatedBasisUnitX_negative_1_0_0()
+	{
+		Transform transform = Transform.FromRotation( 0f, 180f * MathUtils.DEG_2_RAD, 0f );
+
+		Assert.That( transform.BasisUnitX.AlmostEquals( -Vector3.UnitX, 0.0001f ), Is.True );
+	}
+
+	[Test]
 	public void ConstructBasisUnitY_0_1_0()
 	{
 		Transform transform = Transform.Identity;
 
 		Assert.That( transform.BasisUnitY, Is.EqualTo( Vector3.UnitY ) );
+	}
+
+	[Test]
+	public void RotatedBasisUnitY_0_1_0()
+	{
+		Transform transform = Transform.FromRotation( 0.001f, 0f, 0f );
+
+		Assert.That( transform.BasisUnitY.AlmostEquals( Vector3.UnitY, 0.001f ) );
 	}
 
 	[Test]
@@ -60,6 +76,22 @@ public class TransformTests
 
 		Assert.That( transform.BasisUnitZ, Is.EqualTo( Vector3.UnitZ ) );
 	}
+
+	[Test]
+	public void RotatedBasisUnitZ_0_0_negative_1()
+	{
+		Transform transform = Transform.FromRotation( 0f, 180f * MathUtils.DEG_2_RAD, 2000f );
+		
+		Assert.That( transform.BasisUnitZ.AlmostEquals( -Vector3.UnitZ, 0.001f ) );
+	}
+
+	// [Test]
+	// public void RotatedBasisUnitX_negative_1_0_0()
+	// {
+	// 	Transform transform = Transform.FromRotation( 0f, 90f * MathUtils.DEG_2_RAD, 0f );
+	//
+	// 	Assert.That( transform.BasisUnitX.AlmostEquals( -Vector3.UnitX, 0.0001f ), Is.True );
+	// }
 
 	[Test]
 	public void WorldMatrix()

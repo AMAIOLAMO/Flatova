@@ -1,8 +1,8 @@
 using System.Numerics;
-using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
+using Mesh = Flatova.Geometry.Mesh;
 
 namespace Flatova;
 
@@ -14,15 +14,8 @@ public class RenderApplication : IApplication
 
 		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
 
-		_centerMesh = new WorldObject( new CubeMesh() );
-
-		_sideMesh = new WorldObject( new CubeMesh() )
-		{
-			Transform =
-			{
-				Scale = new Vector3( 2f, 1f, .5f )
-			}
-		};
+		_fox = new WorldObject( Mesh.Load( "fox.obj" ) );
+		_axis = new WorldObject( Mesh.Load( "Axis.obj" ) );
 
 		_camera = new Camera
 		(
@@ -37,8 +30,8 @@ public class RenderApplication : IApplication
 
 	public void Update()
 	{
-		_sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
-		_sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
+		// _sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
+		// _sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
 
 		UpdateCameraMovement();
 	}
@@ -47,14 +40,15 @@ public class RenderApplication : IApplication
 	{
 		ClearBackground( Color.BLUE );
 
+		_device.ClearDepthBuffer();
+		_device.RenderObject( _axis, _camera );
+		_device.RenderObject( _fox, _camera );
+
 		DrawFPS( 0, 0 );
 
 		DrawText( $"Camera Position: {_camera!.Transform.Position.ToString( "0.00" )}", 0, 20, 17, Color.GOLD );
-
-		_device!.ClearDepthBuffer();
-
-		_device!.RenderObject( _sideMesh, _camera );
-		_device!.RenderObject( _centerMesh, _camera );
+		DrawText( $"Camera Forward: {_camera.Transform.BasisUnitZ.ToString( "0.00" )}", 0, 40, 17, Color.GOLD );
+		DrawText( $"Camera Rotation: {_camera.Transform.Rotation.ToString( "0.00" )}", 0, 60, 17, Color.GOLD );
 	}
 
 	const float CAMERA_MOVE_SPEED = 5f;
@@ -63,8 +57,9 @@ public class RenderApplication : IApplication
 
 	readonly IRenderDevice<Color> _device;
 
-	readonly WorldObject _sideMesh;
-	readonly WorldObject _centerMesh;
+	readonly WorldObject _fox;
+
+	readonly WorldObject _axis;
 
 	Vector3 _cameraVelocity = Vector3.Zero;
 
@@ -80,7 +75,7 @@ public class RenderApplication : IApplication
 		int vertical = GetKeyAxisStrength( KeyboardKey.KEY_Q, KeyboardKey.KEY_E );
 
 		// Move using basis vectors
-		Vector3 input = _camera!.Transform.BasisUnitX * horizontal +
+		Vector3 input = _camera.Transform.BasisUnitX * horizontal +
 						_camera.Transform.BasisUnitY * vertical +
 						_camera.Transform.BasisUnitZ * depth;
 
@@ -92,14 +87,16 @@ public class RenderApplication : IApplication
 		else
 			_cameraVelocity = _cameraVelocity.Lerp( input * CAMERA_MOVE_SPEED, GetFrameTime() * ACCELERATE_UP_SPEED );
 
+		_camera.Transform.Position += _cameraVelocity * GetFrameTime();
 
-		_camera!.Transform.Position += _cameraVelocity * GetFrameTime();
+		int horizontalRotation = GetKeyAxisStrength( KeyboardKey.KEY_LEFT, KeyboardKey.KEY_RIGHT );
+		int verticalRotation = GetKeyAxisStrength( KeyboardKey.KEY_DOWN, KeyboardKey.KEY_UP );
 
-		_rotationX -= GetMouseDelta().X * GetFrameTime() * 0.1f;
-		_rotationY -= GetMouseDelta().Y * GetFrameTime() * 0.1f;
+		_rotationX -= horizontalRotation * GetFrameTime();
+		_rotationY += verticalRotation * GetFrameTime();
 
-		_camera.Transform.Rotation = Vector3.UnitY * _rotationX;
-		_camera.Transform.Rotation += Vector3.UnitX * _rotationY;
+		_camera.Transform.Rotation = Vector3.UnitY * _rotationX; // left right
+		_camera.Transform.Rotation += Vector3.UnitX * _rotationY; // up down
 	}
 
 	static int GetKeyAxisStrength( KeyboardKey negativeKey, KeyboardKey positiveKey )

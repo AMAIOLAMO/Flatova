@@ -14,5 +14,5 @@ public static class FaceUtils
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public static Vector3 GetCenter( Vector3 a, Vector3 b, Vector3 c ) =>
-		( a + b + c ) * 0.33333333333f;
+		( a + b + c ) * 0.3333333333333333333f;
 }

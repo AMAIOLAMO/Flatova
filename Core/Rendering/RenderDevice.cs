@@ -37,22 +37,22 @@ public class RenderDevice : IRenderDevice<Color>
 			Vector3 worldFirst = first.Transform( worldMatrix );
 			Vector3 worldSecond = second.Transform( worldMatrix );
 			Vector3 worldThird = third.Transform( worldMatrix );
-			
+
+			Vector3 worldFaceNormal = FaceUtils.GetNormal( worldFirst, worldSecond, worldThird );
+			Vector3 cameraDirectionTowardsFace = worldFirst - camera.Transform.Position;
+
+			float faceFacingTowardsCamera = worldFaceNormal.Dot( cameraDirectionTowardsFace );
+
+			if ( faceFacingTowardsCamera > 0 )
+				continue;
+
+
 			Vector3 projectedFirst = camera.WorldProjectDepthResolution( worldFirst, _resolution );
 			Vector3 projectedSecond = camera.WorldProjectDepthResolution( worldSecond, _resolution );
 			Vector3 projectedThird = camera.WorldProjectDepthResolution( worldThird, _resolution );
 
-			Vector3 projectedFaceNormal = FaceUtils.GetNormal( projectedFirst, projectedSecond, projectedThird );
-
-			float facingTowardsCamera = projectedFaceNormal.Dot( -camera.Transform.BasisUnitZ );
-
-			// faces which are not facing the camera, will be ignored
-			if ( facingTowardsCamera <= 0 )
-				continue;
-
 			// Simple Phong Shading
 			// TODO: After implementing materials, move this entire thing into materials
-			Vector3 worldFaceNormal = FaceUtils.GetNormal( worldFirst, worldSecond, worldThird );
 			Vector3 worldFaceCenter = FaceUtils.GetCenter( worldFirst, worldSecond, worldThird );
 
 			var lightPosition = new Vector3( 4, 10, 2 );
@@ -94,7 +94,7 @@ public class RenderDevice : IRenderDevice<Color>
 		SortScreenPointsByY( ref p1, ref p2, ref p3 );
 
 		// Where P2 is to the right of the P1 P3 line
-		if ( MathUtils.PointSide2D( p2, p1, p3 ) > 0 )
+		if ( MathUtils.LineSide2D( p2, p1, p3 ) > 0 )
 			RenderTriangleWhereP2RightSide( p1, p2, p3, color );
 
 		// Where P2 is to the left of the P1 P3 line
@@ -139,21 +139,21 @@ public class RenderDevice : IRenderDevice<Color>
 		float lineAxStepPerY = !MathUtils.AlmostEquals( lineAStart.Y, lineAEnd.Y ) ? ( y - lineAStart.Y ) / ( lineAEnd.Y - lineAStart.Y ) : 1;
 		float lineBxStepPerY = !MathUtils.AlmostEquals( lineBStart.Y, lineBEnd.Y ) ? ( y - lineBStart.Y ) / ( lineBEnd.Y - lineBStart.Y ) : 1;
 
-		int startX = ( int )MathUtils.Lerp( lineAStart.X, lineAEnd.X, lineAxStepPerY );
-		int endX = ( int )MathUtils.Lerp( lineBStart.X, lineBEnd.X, lineBxStepPerY );
+		int startX = ( int )MathUtils.LerpClamped( lineAStart.X, lineAEnd.X, lineAxStepPerY );
+		int endX = ( int )MathUtils.LerpClamped( lineBStart.X, lineBEnd.X, lineBxStepPerY );
 
 		// starting Z & ending Z
-		float startDepth = MathUtils.Lerp( lineAStart.Z, lineAEnd.Z, lineAxStepPerY );
-		float endDepth = MathUtils.Lerp( lineBStart.Z, lineBEnd.Z, lineBxStepPerY );
+		float startDepth = MathUtils.LerpClamped( lineAStart.Z, lineAEnd.Z, lineAxStepPerY );
+		float endDepth = MathUtils.LerpClamped( lineBStart.Z, lineBEnd.Z, lineBxStepPerY );
 
 		for ( int x = startX; x < endX; x++ )
 		{
-			if ( !_resolution.ContainsPixel( x, y ) )
+			if ( !_resolution.Contains( x, y ) )
 				continue;
 
 			float percentage = ( x - startX ) / ( float )( endX - startX );
 
-			float currentDepth = MathF.Abs( MathUtils.Lerp( startDepth, endDepth, percentage ) );
+			float currentDepth = MathF.Abs( MathUtils.LerpClamped( startDepth, endDepth, percentage ) );
 
 			DrawDepthPixel( x, y, currentDepth, color );
 		}

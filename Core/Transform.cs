@@ -22,7 +22,7 @@ public class Transform
 		GetScaleMatrix() * GetRotationMatrix() * GetTranslationMatrix();
 
 	public Matrix4x4 GetRotationMatrix() =>
-		Matrix4X4Utils.FromEuler( Rotation );
+		Matrix4X4Utils.FromEulerRadians( Rotation );
 
 	public Matrix4x4 GetScaleMatrix() =>
 		Matrix4x4.CreateScale( Scale );
@@ -33,7 +33,7 @@ public class Transform
 
 	public static Transform Identity => new( Vector3.Zero, Vector3.Zero, Vector3.One );
 
-	public Vector3 Scale    { get; set; } = Vector3.One;
+	public Vector3 Scale    { get; set; }
 	public Vector3 Position { get; set; }
 	public Vector3 Rotation { get; set; }
 
@@ -47,6 +47,7 @@ public class Transform
 	public static Transform FromPosition( Vector3 position ) => new( position, Vector3.Zero );
 
 	public static Transform FromRotation( Vector3 rotation ) => new( Vector3.Zero, rotation );
+	public static Transform FromRotation( float x, float y, float z ) => FromRotation( new Vector3( x, y, z ) );
 	public static Transform FromScale( Vector3 scale ) => new( Vector3.Zero, Vector3.Zero, scale );
 
 	// TODO: Quaternion Implementation (not done yet)

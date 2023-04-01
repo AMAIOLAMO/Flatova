@@ -6,6 +6,10 @@ namespace Flatova;
 public static class Matrix4X4Utils
 {
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
-	public static Matrix4x4 FromEuler( Vector3 eulerAngles ) =>
-		Matrix4x4.CreateFromYawPitchRoll( eulerAngles.Y, eulerAngles.X, eulerAngles.Z );
+	public static Matrix4x4 FromEulerRadians( Vector3 eulerAnglesRadians ) =>
+		Matrix4x4.CreateFromYawPitchRoll( eulerAnglesRadians.Y, eulerAnglesRadians.X, eulerAnglesRadians.Z );
+
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
+	public static Matrix4x4 FromEulerDegrees( Vector3 eulerAnglesDegrees ) =>
+		FromEulerRadians( eulerAnglesDegrees * MathUtils.DEG_2_RAD );
 }

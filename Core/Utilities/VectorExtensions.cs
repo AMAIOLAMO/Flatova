@@ -6,6 +6,12 @@ namespace Flatova;
 public static class VectorExtensions
 {
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
+	public static bool AlmostEquals( this Vector3 vector, Vector3 other, float epsilon = float.Epsilon ) =>
+		MathUtils.AlmostEquals( vector.X, other.X, epsilon ) &&
+		MathUtils.AlmostEquals( vector.Y, other.Y, epsilon ) &&
+		MathUtils.AlmostEquals( vector.Z, other.Z, epsilon );
+
+	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public static Vector3 Transform( this Vector3 vector, Matrix4x4 matrix ) =>
 		Vector3.Transform( vector, matrix );
 
