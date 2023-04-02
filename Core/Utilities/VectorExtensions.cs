@@ -5,6 +5,8 @@ namespace Flatova;
 
 public static class VectorExtensions
 {
+	public static Vector2 To2D( this Vector3 vector ) => new( vector.X, vector.Y );
+
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public static bool AlmostEquals( this Vector3 vector, Vector3 other, float epsilon = float.Epsilon ) =>
 		MathUtils.AlmostEquals( vector.X, other.X, epsilon ) &&

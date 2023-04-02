@@ -12,7 +12,7 @@ public readonly struct Resolution
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
 	public bool Contains( int x, int y ) =>
 		x >= 0 && x < Width && y >= 0 && y < Height;
-
+	
 	public float AspectRatio => ( float )Width / Height;
 
 	public int Width  { get; }

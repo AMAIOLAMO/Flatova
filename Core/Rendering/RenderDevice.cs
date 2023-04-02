@@ -43,13 +43,21 @@ public class RenderDevice : IRenderDevice<Color>
 
 			float faceFacingTowardsCamera = worldFaceNormal.Dot( cameraDirectionTowardsFace );
 
+			// backface culling
 			if ( faceFacingTowardsCamera > 0 )
 				continue;
 
+			Vector3 projectedFirst = camera.WorldProjectDepth( worldFirst );
+			Vector3 projectedSecond = camera.WorldProjectDepth( worldSecond );
+			Vector3 projectedThird = camera.WorldProjectDepth( worldThird );
 
-			Vector3 projectedFirst = camera.WorldProjectDepthResolution( worldFirst, _resolution );
-			Vector3 projectedSecond = camera.WorldProjectDepthResolution( worldSecond, _resolution );
-			Vector3 projectedThird = camera.WorldProjectDepthResolution( worldThird, _resolution );
+			// TODO: Temporary Clipping
+			if ( IsAnyProjectedClippingOut( projectedFirst, projectedSecond, projectedThird ) )
+				continue;
+
+			projectedFirst = camera.MapProjectedDepthToResolution( projectedFirst, _resolution );
+			projectedSecond = camera.MapProjectedDepthToResolution( projectedSecond, _resolution );
+			projectedThird = camera.MapProjectedDepthToResolution( projectedThird, _resolution );
 
 			// Simple Phong Shading
 			// TODO: After implementing materials, move this entire thing into materials
@@ -67,7 +75,7 @@ public class RenderDevice : IRenderDevice<Color>
 
 			RenderScreenTriangle3D( projectedFirst, projectedSecond, projectedThird, faceColor );
 
-			// Debug: Renders face normals
+			// Debug: Renders face normals (though, should be rendering normals regardless of able to see it)
 			// RenderLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
 		}
 	}
@@ -75,10 +83,14 @@ public class RenderDevice : IRenderDevice<Color>
 
 	public void RenderLine3D( Vector3 a, Vector3 b, Color color, Camera camera )
 	{
-		Vector2 projectedA = camera.WorldProjectResolution( a, _resolution );
-		Vector2 projectedB = camera.WorldProjectResolution( b, _resolution );
+		Vector3 projectedA = camera.WorldProjectDepthResolution( a, _resolution );
+		Vector3 projectedB = camera.WorldProjectDepthResolution( b, _resolution );
 
-		RenderScreenLine( projectedA, projectedB, color );
+		// TODO: Temporary clipping
+		if ( projectedA.Z < -1 || projectedB.Z < -1 )
+			return;
+
+		RenderScreenLine( projectedA.To2D(), projectedB.To2D(), color );
 	}
 
 	readonly Resolution _resolution;
@@ -210,5 +222,30 @@ public class RenderDevice : IRenderDevice<Color>
 				y0 += sy;
 			}
 		}
+	}
+
+	static bool IsAnyProjectedClippingOut( Vector3 projectedFirst, Vector3 projectedSecond, Vector3 projectedThird )
+	{
+		if ( projectedFirst.Z < -.5f || projectedSecond.Z < -.5f || projectedThird.Z < -.5f )
+			return true;
+
+		if ( projectedFirst.Z > 1f || projectedSecond.Z > 1f || projectedThird.Z > 1f )
+			return true;
+
+
+		if ( projectedFirst.X < -.5f && projectedSecond.X < -.5f && projectedThird.X < -.5f )
+			return true;
+
+		if ( projectedFirst.X > .5f && projectedSecond.X > .5f && projectedThird.X > .5f )
+			return true;
+
+
+		if ( projectedFirst.Y < -.5f && projectedSecond.Y < -.5f && projectedThird.Y < -.5f )
+			return true;
+
+		if ( projectedFirst.Y > .5f && projectedSecond.Y > .5f && projectedThird.Y > .5f )
+			return true;
+
+		return false;
 	}
 }

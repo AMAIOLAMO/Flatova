@@ -24,22 +24,36 @@ public class Camera
 	public Matrix4x4 GetProjectionMatrix() =>
 		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
 
+	// Depth Projection
 	public Vector3 VertexProjectDepthResolution( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
 		WorldProjectDepthResolution( vertex.Transform( worldMatrix ), resolution );
-
-	public Vector3 WorldProjectDepthResolution( Vector3 worldPoint, Resolution resolution )
+	
+	public Vector3 WorldProjectDepth( Vector3 worldPoint )
 	{
+		// 1f on w means we are trying to transform a position, instead of a direction
 		Vector4 projectedPoint = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
 
-		// requires specific perspective division system.Numerics' transform method does not do it
 		return new Vector3
 		(
-			projectedPoint.X / projectedPoint.W * resolution.Width + resolution.HalfWidth,
-			projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight,
-			projectedPoint.Z
+			// perspective division
+			projectedPoint.X / projectedPoint.W,
+			projectedPoint.Y / projectedPoint.W,
+			projectedPoint.Z / projectedPoint.W
 		);
 	}
 
+	public Vector3 MapProjectedDepthToResolution( Vector3 projectedDepthPoint, Resolution resolution ) =>
+		new
+		(
+			projectedDepthPoint.X * resolution.Width + resolution.HalfWidth,
+			projectedDepthPoint.Y * resolution.Height + resolution.HalfHeight,
+			projectedDepthPoint.Z
+		);
+
+	public Vector3 WorldProjectDepthResolution( Vector3 worldPoint, Resolution resolution ) =>
+		MapProjectedDepthToResolution( WorldProjectDepth( worldPoint ), resolution );
+
+	// Projection without depth
 	public Vector2 WorldProjectResolution( Vector3 worldPoint, Resolution resolution )
 	{
 		Vector4 projectedPoint = new Vector4( worldPoint, 1f ).Transform( GetViewProjectionMatrix() );
