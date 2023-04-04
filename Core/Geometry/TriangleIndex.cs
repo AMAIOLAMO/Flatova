@@ -1,8 +1,8 @@
 namespace Flatova.Geometry;
 
-public readonly struct Face
+public readonly struct TriangleIndex
 {
-	public Face( int first, int second, int third )
+	public TriangleIndex( int first, int second, int third )
 	{
 		First = first;
 		Second = second;

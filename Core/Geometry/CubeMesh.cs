@@ -18,31 +18,25 @@ public class CubeMesh : Mesh
 			new( -1, -1, 1 ),
 			new( -1, -1, -1 )
 		},
-		new Face[]
+		new TriangleIndex[]
 		{
-			// Front Face
-			new( 6, 2, 4 ),
-			new( 2, 0, 4 ),
-					    
-			// Back eacF
-			new( 7, 5, 3 ),
-			new( 3, 5, 1 ),
-					    
-			// RightcFa e
-			new( 2, 3, 0 ),
-			new( 3, 1, 0 ),
-					    
-			// Left eacF
-			new( 7, 6, 4 ),
-			new( 7, 4, 5 ),
-					    
-			// Top F cea
-			new( 0, 5, 4 ),
-			new( 0, 1, 5 ),
-					    
-			// Bottoa Fmce
-			new( 2, 6, 7 ),
-			new( 2, 7, 3 )
+			new( 6, 4, 2 ),
+			new( 2, 4, 0 ),
+			
+			new( 7, 3, 5 ),
+			new( 3, 1, 5 ),
+			
+			new( 2, 0, 3 ),
+			new( 3, 0, 1 ),
+			
+			new( 7, 4, 6 ),
+			new( 7, 5, 4 ),
+			
+			new( 0, 4, 5 ),
+			new( 0, 5, 1 ),
+			
+			new( 2, 7, 6 ),
+			new( 2, 3, 7 )
 		}
 	)
 	{

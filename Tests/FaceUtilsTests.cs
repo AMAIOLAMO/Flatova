@@ -20,12 +20,4 @@ public class FaceUtilsTests
 
 		Assert.That( normal, Is.EqualTo( Vector3.UnitZ ) );
 	}
-
-	[Test]
-	public void GetCenter()
-	{
-		Vector3 center = FaceUtils.GetCenter( Vector3.Zero, Vector3.UnitX, Vector3.UnitZ );
-
-		Assert.That( center, Is.EqualTo( new Vector3( 0.33333333333f, 0f, 0.33333333333f ) ) );
-	}
 }

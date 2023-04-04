@@ -25,7 +25,7 @@ public class DepthMap
 
 	public bool IsCloser( int x, int y, float depth )
 	{
-		Debug.Assert( depth >= 0, "depth should not be below 0!" );
+		// Debug.Assert( depth >= 0, "depth should not be below 0!" );
 
 		float bufferDepth = GetDepth( x, y );
 

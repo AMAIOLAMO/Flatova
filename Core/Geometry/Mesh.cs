@@ -5,40 +5,43 @@ namespace Flatova.Geometry;
 
 public class Mesh
 {
-	public Mesh( Vector3[] vertices, Face[] faces )
+	public Mesh( Vector3[] vertices, TriangleIndex[] triangleIndices )
 	{
 		Vertices = vertices;
-		Faces = faces;
-	}
-
-	public void GetFaceVertices( in Face face, out Vector3 first, out Vector3 second, out Vector3 third )
-	{
-		first = Vertices[ face.First ];
-		second = Vertices[ face.Second ];
-		third = Vertices[ face.Third ];
+		TriangleIndices = triangleIndices;
 	}
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]
-	public Vector3 GetFaceNormal( Face face ) =>
+	public Vector3 GetFaceNormal( TriangleIndex triangleIndex ) =>
 		FaceUtils.GetNormal
 		(
-			Vertices[ face.First ],
-			Vertices[ face.Second ],
-			Vertices[ face.Third ]
+			Vertices[ triangleIndex.First ],
+			Vertices[ triangleIndex.Second ],
+			Vertices[ triangleIndex.Third ]
+		);
+
+	public Triangle3D GetTriangleFromIndex( TriangleIndex triangleIndex ) =>
+		new
+		(
+			Vertices[ triangleIndex.First ],
+			Vertices[ triangleIndex.Second ],
+			Vertices[ triangleIndex.Third ]
 		);
 
 	public Vector3[] Vertices { get; }
 
-	public Face[] Faces { get; }
+	public TriangleIndex[] TriangleIndices { get; }
 
-	public static Mesh Load( string filePath )
+	// TODO: Parse Polygons where faces shows: "f a/b/c a/b/c a/b/c a/b/c ..."
+	// TODO: Parse into a class called OBJ instead of Mesh, as obj stores textures n stuff data that is NOT related to the mesh
+	public static Mesh LoadObj( string filePath )
 	{
 		using FileStream fileStream = File.OpenRead( filePath );
 
 		var reader = new StreamReader( fileStream );
 
 		List<Vector3> vertices = new();
-		List<Face> faces = new();
+		List<TriangleIndex> triangleIndices = new();
 
 		while ( !reader.EndOfStream )
 		{
@@ -47,7 +50,7 @@ public class Mesh
 			if ( line == null )
 				continue;
 
-			if ( line.StartsWith( 'v' ) )
+			if ( line.StartsWith( "v " ) )
 			{
 				string[] splitLines = line.Split( ' ' );
 
@@ -59,25 +62,25 @@ public class Mesh
 				);
 
 				vertices.Add( vertex );
-				// Console.WriteLine( $"vertex: {vertex}" );
 			}
-			else if ( line.StartsWith( 'f' ) )
+			else if ( line.StartsWith( "f " ) )
 			{
 				string[] splitLines = line.Split( ' ' );
 
+				// order is reversed, as obj stores triangle indices in counter-clockwise order
 				int first = int.Parse( splitLines[ 1 ] ) - 1;
-				int second = int.Parse( splitLines[ 2 ] ) - 1;
-				int third = int.Parse( splitLines[ 3 ] ) - 1;
+				int second = int.Parse( splitLines[ 3 ] ) - 1;
+				int third = int.Parse( splitLines[ 2 ] ) - 1;
 
-				var face = new Face
+				var triangleIndex = new TriangleIndex
 				(
 					first, second, third
 				);
 
-				faces.Add( face );
+				triangleIndices.Add( triangleIndex );
 			}
 		}
 
-		return new Mesh( vertices.ToArray(), faces.ToArray() );
+		return new Mesh( vertices.ToArray(), triangleIndices.ToArray() );
 	}
 }

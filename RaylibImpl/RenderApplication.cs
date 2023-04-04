@@ -1,4 +1,5 @@
 using System.Numerics;
+using Flatova.Geometry;
 using Flatova.Rendering;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
@@ -12,15 +13,25 @@ public class RenderApplication : IApplication
 	{
 		var resolution = new Resolution( GetScreenWidth(), GetScreenHeight() );
 
-		_device = new RenderDevice( resolution, new RayLibCanvasRenderer() );
+		var canvasRenderer = new RayLibCanvasRenderer( resolution, new RayLibCanvas() );
+		_device = new RenderDevice( resolution, canvasRenderer );
 
-		_fox = new WorldObject( Mesh.Load( "fox.obj" ) );
-		// _axis = new WorldObject( Mesh.Load( "Axis.obj" ) );
+		Mesh foxMesh = Mesh.LoadObj( "fox.obj" );
+
+		_fox = new WorldObject( foxMesh )
+		{
+			Transform = { Position = Vector3.UnitZ * 10f }
+		};
+
+		_cube = new WorldObject( new CubeMesh() )
+		{
+			Transform = { Position = Vector3.UnitZ * -10f }
+		};
 
 		_camera = new Camera
 		(
-			Transform.FromPosition( Vector3.UnitZ * 10f ),
-			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 50.0f
+			Transform.Identity,
+			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 30.0f
 		);
 	}
 
@@ -40,17 +51,12 @@ public class RenderApplication : IApplication
 	{
 		ClearBackground( Color.BLUE );
 
-		_device.ClearDepthBuffer();
-		// _device.RenderObject( _axis, _camera );
+		_device.Clear();
 		_device.RenderObject( _fox, _camera );
+		_device.RenderObject( _cube, _camera );
 
-		_device.RenderLine3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
-		_device.RenderLine3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
-		_device.RenderLine3D( Vector3.Zero, Vector3.UnitZ, Color.BLUE, _camera );
+		RenderAxis();
 
-		_device.RenderLine3D( Vector3.Zero, _camera.Transform.BasisUnitX, Color.RED, _camera );
-		_device.RenderLine3D( Vector3.Zero, _camera.Transform.BasisUnitY, Color.RED, _camera );
-		_device.RenderLine3D( Vector3.Zero, _camera.Transform.BasisUnitZ, Color.RED, _camera );
 		DrawFPS( 0, 0 );
 
 		DrawText( $"Camera Position: {_camera.Transform.Position.ToString( "0.00" )}", 0, 20, 17, Color.GOLD );
@@ -66,10 +72,19 @@ public class RenderApplication : IApplication
 
 	readonly WorldObject _fox;
 
+	readonly WorldObject _cube;
+
 	Vector3 _cameraVelocity = Vector3.Zero;
 
 	float _rotationX;
-	float _rotationY = float.Pi;
+	float _rotationY;
+
+	void RenderAxis()
+	{
+		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
+		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
+		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitZ, Color.BLUE, _camera );
+	}
 
 
 	void UpdateCameraMovement()
@@ -82,7 +97,7 @@ public class RenderApplication : IApplication
 		// Move using basis vectors
 		Vector3 input = _camera.Transform.BasisUnitX * horizontal +
 						_camera.Transform.BasisUnitY * vertical +
-						_camera.Transform.BasisUnitZ * depth;
+						_camera.Transform.BasisUnitZ * -depth;
 
 		const int SLOW_DOWN_SPEED = 9;
 		const int ACCELERATE_UP_SPEED = 7;
@@ -97,7 +112,7 @@ public class RenderApplication : IApplication
 		int horizontalRotation = GetKeyAxisStrength( KeyboardKey.KEY_LEFT, KeyboardKey.KEY_RIGHT );
 		int verticalRotation = GetKeyAxisStrength( KeyboardKey.KEY_DOWN, KeyboardKey.KEY_UP );
 
-		_rotationX += horizontalRotation * GetFrameTime();
+		_rotationX -= horizontalRotation * GetFrameTime();
 		_rotationY += verticalRotation * GetFrameTime();
 
 		_camera.Transform.Rotation = Vector3.UnitY * _rotationX; // left right
@@ -117,8 +132,12 @@ public class RenderApplication : IApplication
 		return resultStrength;
 	}
 }
-public class RayLibCanvasRenderer : ICanvasRenderer<Color>
+public class RayLibCanvas : ICanvas<Color>
 {
 	public void DrawPixel( int x, int y, Color color ) =>
 		Raylib.DrawPixel( x, y, color );
+
+	public void Flush()
+	{
+	}
 }

@@ -2,6 +2,7 @@ using System.Numerics;
 
 namespace Flatova;
 
+// TODO: fix camera orientation matrices (view & projection)
 public class Camera
 {
 	// TODO: Consider putting these settings into another data structure
@@ -21,13 +22,30 @@ public class Camera
 		_farPlaneDistance = farPlaneDistance;
 	}
 
-	public Matrix4x4 GetProjectionMatrix() =>
-		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
+	public Matrix4x4 GetProjectionMatrix()
+	{
+		float yScale = 1.0f / MathF.Tan( _fovRadians * 0.5f );
+		float q = _farPlaneDistance / ( _nearPlaneDistance - _farPlaneDistance );
+
+		return new Matrix4x4
+		{
+			M11 = yScale / _aspectRatio,
+			M22 = yScale,
+			M33 = q,
+			M34 = -1.0f,
+			M43 = q * _nearPlaneDistance
+		};
+
+		// This is left hand perspective projection, not what we wanted :/
+		// because after applying this projection matrix, it turns into right hand coordinate system
+		// but we wanted a left hand coord system instead
+		return Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
+	}
 
 	// Depth Projection
 	public Vector3 VertexProjectDepthResolution( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
 		WorldProjectDepthResolution( vertex.Transform( worldMatrix ), resolution );
-	
+
 	public Vector3 WorldProjectDepth( Vector3 worldPoint )
 	{
 		// 1f on w means we are trying to transform a position, instead of a direction
@@ -42,11 +60,13 @@ public class Camera
 		);
 	}
 
+	// TODO: move this into resolution with a good name
 	public Vector3 MapProjectedDepthToResolution( Vector3 projectedDepthPoint, Resolution resolution ) =>
 		new
 		(
-			projectedDepthPoint.X * resolution.Width + resolution.HalfWidth,
-			projectedDepthPoint.Y * resolution.Height + resolution.HalfHeight,
+			// map from -1f to 1f -> 0f to 1f -> 0f to resolution.Size
+			( projectedDepthPoint.X + 1f ) * .5f * resolution.Width,
+			( -projectedDepthPoint.Y + 1f ) * .5f * resolution.Height,
 			projectedDepthPoint.Z
 		);
 
@@ -62,13 +82,21 @@ public class Camera
 		return new Vector2
 		(
 			projectedPoint.X / projectedPoint.W * resolution.Width + resolution.HalfWidth,
-			projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight
+			-projectedPoint.Y / projectedPoint.W * resolution.Height + resolution.HalfHeight
 		);
 	}
 
-	public Matrix4x4 GetViewMatrix() =>
-		Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
+	public Matrix4x4 GetViewMatrix()
+	{
+		Matrix4x4 worldMatrix = Matrix4x4.CreateRotationX( Transform.Rotation.X ) * Matrix4x4.CreateRotationY( Transform.Rotation.Y ) * Matrix4x4.CreateTranslation( Transform.Position );
 
+		Matrix4x4 viewMatrix = worldMatrix.Invert();
+
+		return viewMatrix;
+		
+		return Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
+	}
+	
 	public Transform Transform { get; }
 
 	readonly float _nearPlaneDistance;
