@@ -73,7 +73,7 @@ public class RenderDevice : IRenderDevice<Color>
 			_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
 
 			// Debug: Renders face normals (though, should be rendering normals regardless of able to see it)
-			RenderWorldLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
+			// RenderWorldLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
 		}
 	}
 
