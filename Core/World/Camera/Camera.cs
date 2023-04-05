@@ -1,29 +1,22 @@
 using System.Numerics;
 
-namespace Flatova;
+namespace Flatova.World;
 
 // TODO: fix camera orientation matrices (view & projection)
 public class Camera
 {
-	// TODO: Consider putting these settings into another data structure
-	public Camera( float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance ) :
-		this( Transform.Identity, fovRadians, aspectRatio, nearPlaneDistance, farPlaneDistance )
+	public Camera( Transform transform, CameraProfile profile )
 	{
-	}
-
-	public Camera( Transform transform, float fovRadians, float aspectRatio, float nearPlaneDistance, float farPlaneDistance )
-	{
-		_fovRadians = fovRadians;
-		_aspectRatio = aspectRatio;
-
 		Transform = transform;
-
-		_nearPlaneDistance = nearPlaneDistance;
-		_farPlaneDistance = farPlaneDistance;
+		Profile = profile;
 	}
 
 	public Matrix4x4 GetProjectionMatrix() =>
-		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
+		Matrix4x4.CreatePerspectiveFieldOfView
+		(
+			Profile.FovRadians, Profile.AspectRatio,
+			Profile.NearPlaneDistance, Profile.FarPlaneDistance
+		);
 
 	// Depth Projection
 	public Vector3 VertexProjectDepthResolution( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
@@ -70,14 +63,9 @@ public class Camera
 		// return Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
 	}
 
+	public CameraProfile Profile { get; }
+
 	public Transform Transform { get; }
-
-	readonly float _nearPlaneDistance;
-	readonly float _farPlaneDistance;
-
-	readonly float _fovRadians;
-
-	readonly float _aspectRatio;
 
 	Vector3 GetCameraTarget() =>
 		Transform.Position + Transform.BasisUnitZ;

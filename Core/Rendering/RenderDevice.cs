@@ -1,5 +1,6 @@
 using System.Numerics;
 using Flatova.Geometry;
+using Flatova.World;
 using Raylib_cs;
 
 namespace Flatova.Rendering;
@@ -14,6 +15,12 @@ public class RenderDevice : IRenderDevice<Color>
 
 	public void Clear() =>
 		_canvasRenderer.Clear();
+
+	public void RenderScene( Scene scene )
+	{
+		foreach ( WorldObject worldObject in scene.WorldObjects )
+			RenderObject( worldObject, scene.Camera );
+	}
 
 	public void RenderObject( WorldObject renderingObject, Camera camera )
 	{

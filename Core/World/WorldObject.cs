@@ -2,16 +2,19 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Flatova.Geometry;
 
-namespace Flatova;
+namespace Flatova.World;
 
+/// <summary>
+///     Represents a <see cref="Mesh" /> with a <see cref="Transform" />
+/// </summary>
 public class WorldObject
 {
-	public WorldObject( Mesh mesh ) : this( Transform.Identity, mesh ) { }
+	public WorldObject( Mesh mesh ) : this( mesh, Transform.Identity ) { }
 
-	public WorldObject( Transform transform, Mesh mesh )
+	public WorldObject( Mesh mesh, Transform transform )
 	{
-		Transform = transform;
 		Mesh = mesh;
+		Transform = transform;
 	}
 
 	[MethodImpl( MethodImplOptions.AggressiveInlining )]

@@ -1,4 +1,5 @@
 using System.Numerics;
+using Flatova.World;
 using Raylib_cs;
 
 namespace Flatova.Rendering;
@@ -11,4 +12,5 @@ public interface IRenderDevice<in TColor>
 	void RenderWorldCircle( Vector3 worldCenterPosition, float radius, Color color, Camera camera );
 
 	void Clear();
+	void RenderScene( Scene scene );
 }

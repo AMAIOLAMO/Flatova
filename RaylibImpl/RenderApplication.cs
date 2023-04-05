@@ -1,6 +1,7 @@
 using System.Numerics;
-using Flatova.Geometry;
+using Flatova.Geometry.Primitives;
 using Flatova.Rendering;
+using Flatova.World;
 using Raylib_cs;
 using static Raylib_cs.Raylib;
 using Mesh = Flatova.Geometry.Mesh;
@@ -16,51 +17,82 @@ public class RenderApplication : IApplication
 		var canvasRenderer = new RayLibCanvasRenderer( resolution, new RayLibCanvas() );
 		_device = new RenderDevice( resolution, canvasRenderer );
 
-		Mesh foxMesh = Mesh.LoadObj( "fox.obj" );
-
-		_fox = new WorldObject( foxMesh )
-		{
-			Transform = { Position = Vector3.UnitZ * 10f }
-		};
-
-		_cube = new WorldObject( new CubeMesh() )
-		{
-			Transform = { Position = Vector3.UnitZ * -10f }
-		};
-
-		_sphere = new WorldObject( Mesh.LoadObj( "sphere.obj" ) )
-		{
-			Transform = { Position = Vector3.UnitZ * -30f }
-		};
+		var cameraProfile = new CameraProfile
+		(
+			60 * DEG2RAD, resolution.AspectRatio,
+			.1f, 100.0f
+		);
 
 		_camera = new Camera
 		(
 			Transform.Identity,
-			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 100.0f
+			cameraProfile
 		);
+
+		_scene = new Scene( _camera );
+
+		var fox = new WorldObject
+		(
+			Mesh.LoadObj( "fox.obj" ),
+			Transform.FromPosition( Vector3.UnitZ * 10f )
+		);
+
+		var cube = new WorldObject
+		(
+			MeshPrimitives.Cube,
+			Transform.FromPosition( Vector3.UnitZ * -10f )
+		);
+
+		_spherePlanet = new WorldObject
+		(
+			Mesh.LoadObj( "sphere.obj" ),
+			Transform.FromPosition( Vector3.UnitZ * -30f )
+		);
+
+		_scene.AddRange( fox, cube, _spherePlanet );
+
+		_starPositions = new List<Vector3>();
+
+		var random = new Random();
+
+		for ( int index = 0; index < 5000; index++ )
+		{
+			var starPosition = new Vector3
+			(
+				( random.NextSingle() - .5f ) * 2f * 150f,
+				( random.NextSingle() - .5f ) * 2f * 150f,
+				( random.NextSingle() - .5f ) * 2f * 150f
+			);
+
+			_starPositions.Add( starPosition );
+		}
 	}
 
 	public void Initialize()
 	{
 	}
 
-	public void Update() =>
+	public void Update()
+	{
+		_spherePlanet.Transform.Rotation += new Vector3( 1f, .8f, -.2f ) * GetFrameTime() * .2f;
+
 		UpdateCameraMovement();
+
+		UpdateZoom();
+	}
 
 	public void Draw()
 	{
 		ClearBackground( Color.BLACK );
 
 		_device.Clear();
-		_device.RenderObject( _fox, _camera );
-		_device.RenderObject( _cube, _camera );
 
-		_device.RenderObject( _sphere, _camera );
+		_device.RenderScene( _scene );
 
-		_device.RenderWorldPixel( Vector3.UnitY * 5f, Color.RED, _camera );
-		_device.RenderWorldCircle( Vector3.UnitY * 6f, 3f, Color.RED, _camera );
+		foreach ( Vector3 starPosition in _starPositions )
+			_device.RenderWorldPixel( starPosition, Color.WHITE, _camera );
 
-		RenderAxis();
+		RenderWorldAxis();
 
 		DrawFPS( 0, 0 );
 
@@ -73,18 +105,35 @@ public class RenderApplication : IApplication
 
 	readonly Camera _camera;
 
+	readonly Scene _scene;
+
 	readonly IRenderDevice<Color> _device;
 
-	readonly WorldObject _fox;
-	readonly WorldObject _cube;
-	readonly WorldObject _sphere;
+	readonly WorldObject _spherePlanet;
+
+	readonly List<Vector3> _starPositions;
 
 	Vector3 _cameraVelocity = Vector3.Zero;
 
 	float _rotationX;
 	float _rotationY;
 
-	void RenderAxis()
+	float _targetFovRadians;
+
+	void UpdateZoom()
+	{
+		const float ZOOM_SPEED = 3.5f;
+
+		if ( IsKeyDown( KeyboardKey.KEY_C ) )
+			_targetFovRadians = 40 * MathUtils.DEG_2_RAD;
+
+		if ( IsKeyUp( KeyboardKey.KEY_C ) )
+			_targetFovRadians = 60 * MathUtils.DEG_2_RAD;
+
+		_camera.Profile.FovRadians = MathUtils.Lerp( _camera.Profile.FovRadians, _targetFovRadians, ZOOM_SPEED * GetFrameTime() );
+	}
+
+	void RenderWorldAxis()
 	{
 		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
 		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
