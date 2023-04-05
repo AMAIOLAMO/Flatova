@@ -51,20 +51,24 @@ public class RenderApplication : IApplication
 
 		_scene.AddRange( fox, cube, _spherePlanet );
 
-		_starPositions = new List<Vector3>();
+		_stars = new List<Star>();
 
 		var random = new Random();
 
-		for ( int index = 0; index < 5000; index++ )
+		for ( int index = 0; index < 6000; index++ )
 		{
 			var starPosition = new Vector3
 			(
-				( random.NextSingle() - .5f ) * 2f * 150f,
-				( random.NextSingle() - .5f ) * 2f * 150f,
-				( random.NextSingle() - .5f ) * 2f * 150f
+				( random.NextSingle() - .5f ) * 2f * 200f,
+				( random.NextSingle() - .5f ) * 2f * 200f,
+				( random.NextSingle() - .5f ) * 2f * 200f
 			);
 
-			_starPositions.Add( starPosition );
+			byte brightness = ( byte )random.Next( 100, 256 );
+
+			var color = new Color( brightness, brightness, brightness, ( byte )255 );
+
+			_stars.Add( new Star( starPosition, color ) );
 		}
 	}
 
@@ -89,8 +93,8 @@ public class RenderApplication : IApplication
 
 		_device.RenderScene( _scene );
 
-		foreach ( Vector3 starPosition in _starPositions )
-			_device.RenderWorldPixel( starPosition, Color.WHITE, _camera );
+		foreach ( Star star in _stars )
+			_device.RenderWorldPixel( star.Position, star.Color, _camera );
 
 		RenderWorldAxis();
 
@@ -111,7 +115,7 @@ public class RenderApplication : IApplication
 
 	readonly WorldObject _spherePlanet;
 
-	readonly List<Vector3> _starPositions;
+	readonly List<Star> _stars;
 
 	Vector3 _cameraVelocity = Vector3.Zero;
 
@@ -186,6 +190,19 @@ public class RenderApplication : IApplication
 		return resultStrength;
 	}
 }
+
+public readonly struct Star
+{
+	public Star( Vector3 position, Color color )
+	{
+		Position = position;
+		Color = color;
+	}
+
+	public Vector3 Position { get; }
+	public Color   Color    { get; }
+}
+
 public class RayLibCanvas : ICanvas<Color>
 {
 	public void DrawPixel( int x, int y, Color color ) =>
