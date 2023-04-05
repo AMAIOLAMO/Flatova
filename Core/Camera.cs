@@ -22,25 +22,8 @@ public class Camera
 		_farPlaneDistance = farPlaneDistance;
 	}
 
-	public Matrix4x4 GetProjectionMatrix()
-	{
-		float yScale = 1.0f / MathF.Tan( _fovRadians * 0.5f );
-		float q = _farPlaneDistance / ( _nearPlaneDistance - _farPlaneDistance );
-
-		return new Matrix4x4
-		{
-			M11 = yScale / _aspectRatio,
-			M22 = yScale,
-			M33 = q,
-			M34 = -1.0f,
-			M43 = q * _nearPlaneDistance
-		};
-
-		// This is left hand perspective projection, not what we wanted :/
-		// because after applying this projection matrix, it turns into right hand coordinate system
-		// but we wanted a left hand coord system instead
-		return Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
-	}
+	public Matrix4x4 GetProjectionMatrix() =>
+		Matrix4x4.CreatePerspectiveFieldOfView( _fovRadians, _aspectRatio, _nearPlaneDistance, _farPlaneDistance );
 
 	// Depth Projection
 	public Vector3 VertexProjectDepthResolution( Vector3 vertex, Matrix4x4 worldMatrix, Resolution resolution ) =>
@@ -60,18 +43,8 @@ public class Camera
 		);
 	}
 
-	// TODO: move this into resolution with a good name
-	public Vector3 MapProjectedDepthToResolution( Vector3 projectedDepthPoint, Resolution resolution ) =>
-		new
-		(
-			// map from -1f to 1f -> 0f to 1f -> 0f to resolution.Size
-			( projectedDepthPoint.X + 1f ) * .5f * resolution.Width,
-			( -projectedDepthPoint.Y + 1f ) * .5f * resolution.Height,
-			projectedDepthPoint.Z
-		);
-
 	public Vector3 WorldProjectDepthResolution( Vector3 worldPoint, Resolution resolution ) =>
-		MapProjectedDepthToResolution( WorldProjectDepth( worldPoint ), resolution );
+		resolution.MapProjectedDepth( WorldProjectDepth( worldPoint ) );
 
 	// Projection without depth
 	public Vector2 WorldProjectResolution( Vector3 worldPoint, Resolution resolution )
@@ -93,10 +66,10 @@ public class Camera
 		Matrix4x4 viewMatrix = worldMatrix.Invert();
 
 		return viewMatrix;
-		
-		return Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
+
+		// return Matrix4x4.CreateLookAt( Transform.Position, GetCameraTarget(), Transform.BasisUnitY );
 	}
-	
+
 	public Transform Transform { get; }
 
 	readonly float _nearPlaneDistance;

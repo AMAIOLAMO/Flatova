@@ -28,10 +28,15 @@ public class RenderApplication : IApplication
 			Transform = { Position = Vector3.UnitZ * -10f }
 		};
 
+		_sphere = new WorldObject( Mesh.LoadObj( "sphere.obj" ) )
+		{
+			Transform = { Position = Vector3.UnitZ * -30f }
+		};
+
 		_camera = new Camera
 		(
 			Transform.Identity,
-			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 30.0f
+			60 * DEG2RAD, resolution.AspectRatio, 0.1f, 100.0f
 		);
 	}
 
@@ -39,21 +44,21 @@ public class RenderApplication : IApplication
 	{
 	}
 
-	public void Update()
-	{
-		// _sideMesh!.Transform.Position = new Vector3( float.Sin( ( float )GetTime() ), float.Cos( ( float )GetTime() ), 0f ) * 3;
-		// _sideMesh!.Transform.Rotation += new Vector3( GetFrameTime(), 0f, GetFrameTime() );
-
+	public void Update() =>
 		UpdateCameraMovement();
-	}
 
 	public void Draw()
 	{
-		ClearBackground( Color.BLUE );
+		ClearBackground( Color.BLACK );
 
 		_device.Clear();
 		_device.RenderObject( _fox, _camera );
 		_device.RenderObject( _cube, _camera );
+
+		_device.RenderObject( _sphere, _camera );
+
+		_device.RenderWorldPixel( Vector3.UnitY * 5f, Color.RED, _camera );
+		_device.RenderWorldCircle( Vector3.UnitY * 6f, 3f, Color.RED, _camera );
 
 		RenderAxis();
 
@@ -71,8 +76,8 @@ public class RenderApplication : IApplication
 	readonly IRenderDevice<Color> _device;
 
 	readonly WorldObject _fox;
-
 	readonly WorldObject _cube;
+	readonly WorldObject _sphere;
 
 	Vector3 _cameraVelocity = Vector3.Zero;
 

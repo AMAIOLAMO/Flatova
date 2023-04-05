@@ -1,3 +1,5 @@
+using Flatova;
+
 namespace Tests;
 
 public class ResolutionTests

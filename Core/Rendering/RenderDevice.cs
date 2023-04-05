@@ -21,9 +21,8 @@ public class RenderDevice : IRenderDevice<Color>
 
 		TriangleIndex[] triangleIndices = renderingObject.Mesh.TriangleIndices;
 
-		for ( int index = 0; index < triangleIndices.Length; index++ )
+		foreach ( TriangleIndex triangleIndex in triangleIndices )
 		{
-			TriangleIndex triangleIndex = triangleIndices[ index ];
 			// Vertices 
 
 			Triangle3D localTriangle = renderingObject.Mesh.GetTriangleFromIndex( triangleIndex );
@@ -45,16 +44,16 @@ public class RenderDevice : IRenderDevice<Color>
 
 
 			// TODO: Temporary Clipping
-			if ( IsAnyProjectedTriangleClipping( projectedFirst, projectedSecond, projectedThird ) )
+			if ( IsAnyProjectedTriangleCulling( projectedFirst, projectedSecond, projectedThird ) )
 			{
 				Raylib.DrawText( "Clipping", 0, 100, 17, Color.WHITE );
 
 				continue;
 			}
 
-			projectedFirst = camera.MapProjectedDepthToResolution( projectedFirst, _resolution );
-			projectedSecond = camera.MapProjectedDepthToResolution( projectedSecond, _resolution );
-			projectedThird = camera.MapProjectedDepthToResolution( projectedThird, _resolution );
+			projectedFirst = _resolution.MapProjectedDepth( projectedFirst );
+			projectedSecond = _resolution.MapProjectedDepth( projectedSecond );
+			projectedThird = _resolution.MapProjectedDepth( projectedThird );
 
 			// Simple Phong Shading
 			// TODO: After implementing materials, move this entire thing into materials
@@ -71,44 +70,53 @@ public class RenderDevice : IRenderDevice<Color>
 			var faceColor = new Color( shadingByteColor, shadingByteColor, shadingByteColor, ( byte )255 );
 
 			_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
-
-			// Debug: Renders face normals (though, should be rendering normals regardless of able to see it)
-			// RenderWorldLine3D( worldFaceCenter, worldFaceCenter + worldFaceNormal, Color.GREEN, camera );
 		}
 	}
 
 
-	public void RenderWorldLine3D( Vector3 a, Vector3 b, Color color, Camera camera )
+	public void RenderWorldCircle( Vector3 worldCenterPosition, float radius, Color color, Camera camera )
 	{
-		Vector3 projectedA = camera.WorldProjectDepth( a );
-		Vector3 projectedB = camera.WorldProjectDepth( b );
+		// TODO: Render Filled circles
+	}
 
-		if ( IsProjectedPointClipping( projectedA ) && IsProjectedPointClipping( projectedB ) )
-		{
-			Raylib.DrawText( "Line Clipping", 0, 120, 17, Color.WHITE );
+	public void RenderWorldLine3D( Vector3 worldFromPosition, Vector3 worldToPosition, Color color, Camera camera )
+	{
+		Vector3 projectedA = camera.WorldProjectDepth( worldFromPosition );
+		Vector3 projectedB = camera.WorldProjectDepth( worldToPosition );
 
+		if ( IsProjectedPointCulled( projectedA ) && IsProjectedPointCulled( projectedB ) )
 			return;
-		}
 
-		Vector3 screenA = camera.MapProjectedDepthToResolution( projectedA, _resolution );
-		Vector3 screenB = camera.MapProjectedDepthToResolution( projectedB, _resolution );
+		Vector3 screenA = _resolution.MapProjectedDepth( projectedA );
+		Vector3 screenB = _resolution.MapProjectedDepth( projectedB );
 
 		_canvasRenderer.DrawDepthLine( screenA, screenB, color );
+	}
+
+	public void RenderWorldPixel( Vector3 worldPosition, Color color, Camera camera )
+	{
+		Vector3 projectedPosition = camera.WorldProjectDepth( worldPosition );
+
+		if ( IsProjectedPointCulled( projectedPosition ) )
+			return;
+
+		Vector3 screenPoint = _resolution.MapProjectedDepth( projectedPosition );
+		_canvasRenderer.DrawDepthPixel( ( int )screenPoint.X, ( int )screenPoint.Y, screenPoint.Z, color );
 	}
 
 	readonly Resolution _resolution;
 
 	readonly ICanvasRenderer<Color> _canvasRenderer;
 
-
-	static bool IsProjectedPointClipping( Vector3 projectedPoint ) =>
+	static bool IsProjectedPointCulled( Vector3 projectedPoint ) =>
 		projectedPoint.X is < -1f or > 1f ||
 		projectedPoint.Y is < -1f or > 1f ||
-		projectedPoint.Z is < -1f or > 1f;
+		projectedPoint.Z is < 0f or > 1f;
 
-	static bool IsAnyProjectedTriangleClipping( Vector3 projectedFirst, Vector3 projectedSecond, Vector3 projectedThird )
+
+	static bool IsAnyProjectedTriangleCulling( Vector3 projectedFirst, Vector3 projectedSecond, Vector3 projectedThird )
 	{
-		if ( projectedFirst.Z < -1f || projectedSecond.Z < -1f || projectedThird.Z < -1f )
+		if ( projectedFirst.Z < 0f || projectedSecond.Z < 0f || projectedThird.Z < 0f )
 			return true;
 
 		if ( projectedFirst.Z > 1f || projectedSecond.Z > 1f || projectedThird.Z > 1f )
