@@ -1,4 +1,5 @@
 using System.Numerics;
+using Flatova.Geometry;
 using Flatova.Geometry.Primitives;
 using Flatova.Rendering;
 using Flatova.World;
@@ -80,6 +81,7 @@ public class RenderApplication : IApplication
 	{
 		_spherePlanet.Transform.Rotation += new Vector3( 1f, .8f, -.2f ) * GetFrameTime() * .2f;
 
+
 		UpdateCameraMovement();
 
 		UpdateZoom();
@@ -95,6 +97,18 @@ public class RenderApplication : IApplication
 
 		foreach ( Star star in _stars )
 			_device.RenderWorldPixel( star.Position, star.Color, _camera );
+
+		var line = new Line3D( new Vector3( 1, 2, 3 ), new Vector3( -5, -3, -2 ) );
+		_device.RenderWorldLineSegment3D( line, Color.GOLD, _camera );
+
+		var plane = new Plane3D( new Vector3( 1, 2, 3 ), Vector3.UnitY );
+
+		if ( line.TryIntersect( plane, out Vector3 intersectionPoint ) )
+		{
+			_device.RenderWorldRect( intersectionPoint, Vector2.One * 20, Color.GREEN, _camera );
+			DrawText( $"Intersected at: {intersectionPoint}", 500, 20, 17, Color.GREEN );
+		}
+
 
 		RenderWorldAxis();
 
@@ -139,9 +153,9 @@ public class RenderApplication : IApplication
 
 	void RenderWorldAxis()
 	{
-		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
-		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
-		_device.RenderWorldLine3D( Vector3.Zero, Vector3.UnitZ, Color.BLUE, _camera );
+		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
+		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
+		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitZ, Color.BLUE, _camera );
 	}
 
 
@@ -190,7 +204,6 @@ public class RenderApplication : IApplication
 		return resultStrength;
 	}
 }
-
 public readonly struct Star
 {
 	public Star( Vector3 position, Color color )
@@ -202,7 +215,6 @@ public readonly struct Star
 	public Vector3 Position { get; }
 	public Color   Color    { get; }
 }
-
 public class RayLibCanvas : ICanvas<Color>
 {
 	public void DrawPixel( int x, int y, Color color ) =>

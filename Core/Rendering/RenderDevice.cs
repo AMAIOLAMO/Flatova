@@ -81,12 +81,26 @@ public class RenderDevice : IRenderDevice<Color>
 	}
 
 
-	public void RenderWorldCircle( Vector3 worldCenterPosition, float radius, Color color, Camera camera )
+	public void RenderWorldRect( Vector3 worldCenterPosition, Vector2 size, Color color, Camera camera )
 	{
-		// TODO: Render Filled circles
+		Vector3 projectedCenterPosition = camera.WorldProjectDepthResolution( worldCenterPosition, _resolution );
+
+		Vector2 halfSize = size * .5f;
+
+		var projectedCenterPosition2D = new Vector2( projectedCenterPosition.X, projectedCenterPosition.Y );
+
+		Vector2 topLeft = projectedCenterPosition2D - halfSize;
+		Vector2 bottomRight = projectedCenterPosition2D + halfSize;
+
+		for ( int x = ( int )topLeft.X; x < ( int )bottomRight.X; x++ )
+		{
+			for ( int y = ( int )topLeft.Y; y < ( int )bottomRight.Y; y++ )
+				if ( _resolution.Contains( x, y ) )
+					_canvasRenderer.DrawDepthPixel( x, y, projectedCenterPosition.Z, color );
+		}
 	}
 
-	public void RenderWorldLine3D( Vector3 worldFromPosition, Vector3 worldToPosition, Color color, Camera camera )
+	public void RenderWorldLineSegment3D( Vector3 worldFromPosition, Vector3 worldToPosition, Color color, Camera camera )
 	{
 		Vector3 projectedA = camera.WorldProjectDepth( worldFromPosition );
 		Vector3 projectedB = camera.WorldProjectDepth( worldToPosition );
