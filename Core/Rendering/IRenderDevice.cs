@@ -11,6 +11,8 @@ public interface IRenderDevice<in TColor>
 	void RenderWorldPixel( Vector3 worldPosition, TColor color, Camera camera );
 	void RenderWorldRect( Vector3 worldCenterPosition, Vector2 size, TColor color, Camera camera );
 
+	void RenderWorldTriangleLine( Triangle3D triangle, TColor color, Camera camera );
+
 	void Clear();
 	void RenderScene( Scene scene );
 

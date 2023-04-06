@@ -98,18 +98,6 @@ public class RenderApplication : IApplication
 		foreach ( Star star in _stars )
 			_device.RenderWorldPixel( star.Position, star.Color, _camera );
 
-		var line = new Line3D( new Vector3( 1, 2, 3 ), new Vector3( -5, -3, -2 ) );
-		_device.RenderWorldLineSegment3D( line, Color.GOLD, _camera );
-
-		var plane = new Plane3D( new Vector3( 1, 2, 3 ), Vector3.UnitY );
-
-		if ( line.TryIntersect( plane, out Vector3 intersectionPoint ) )
-		{
-			_device.RenderWorldRect( intersectionPoint, Vector2.One * 20, Color.GREEN, _camera );
-			DrawText( $"Intersected at: {intersectionPoint}", 500, 20, 17, Color.GREEN );
-		}
-
-
 		RenderWorldAxis();
 
 		DrawFPS( 0, 0 );
