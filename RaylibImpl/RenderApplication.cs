@@ -101,7 +101,7 @@ public class RenderApplication : IApplication
 		{
 			new( Vector3.UnitX * .1f, Vector3.UnitX ),
 
-			new( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitY ),
+			new( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) ), -Vector3.UnitY ),
 			new( Vector3.UnitZ * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitZ ),
 
 			new( Vector3.UnitZ * ( float.Sin( ( float )GetTime() ) * .1f ), Vector3.UnitZ )
@@ -181,7 +181,7 @@ public class RenderApplication : IApplication
 						_camera.Transform.BasisUnitY * vertical +
 						_camera.Transform.BasisUnitZ * -depth;
 
-		const int SLOW_DOWN_SPEED = 9;
+		const int SLOW_DOWN_SPEED = 5;
 		const int ACCELERATE_UP_SPEED = 7;
 
 		if ( input.LengthSquared() < 1 )

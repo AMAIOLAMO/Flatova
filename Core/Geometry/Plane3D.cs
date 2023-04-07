@@ -92,8 +92,9 @@ public readonly struct Plane3D
 	/// </summary>
 	public bool TryClipTriangle( Triangle3D triangleToClip, in Queue<Triangle3D> clippedTriangles )
 	{
-		var insidePoints = new Vector3[ 3 ];
-		var outsidePoints = new Vector3[ 3 ];
+		Span<Vector3> insidePoints = stackalloc Vector3[ 3 ];
+		
+		Span<Vector3> outsidePoints = stackalloc Vector3[ 3 ];
 
 		int insidePointCount = 0, outsidePointCount = 0;
 

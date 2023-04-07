@@ -28,6 +28,8 @@ public class RenderDevice : IRenderDevice<Color>
 
 		TriangleIndex[] triangleIndices = renderingObject.Mesh.TriangleIndices;
 
+		var clippedTriangles = new Queue<Triangle3D>();
+
 		foreach ( TriangleIndex triangleIndex in triangleIndices )
 		{
 			Triangle3D localTriangle = renderingObject.Mesh.GetTriangleFromIndex( triangleIndex );
@@ -54,15 +56,26 @@ public class RenderDevice : IRenderDevice<Color>
 				continue;
 			}
 
-			projectedFirst = _resolution.MapProjectedDepth( projectedFirst );
-			projectedSecond = _resolution.MapProjectedDepth( projectedSecond );
-			projectedThird = _resolution.MapProjectedDepth( projectedThird );
+			var projectedTriangle = new Triangle3D( projectedFirst, projectedSecond, projectedThird );
 
-			// Simple Phong Shading
-			// TODO: After implementing materials, move this entire thing into materials
-			Color faceColor = GetFaceColor( worldTriangle );
+			clippedTriangles.Clear();
+			clippedTriangles.Enqueue( projectedTriangle );
 
-			_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
+			foreach ( Plane3D planeToClip in _projectionPlanesToClip )
+				planeToClip.ClipTrianglesIntoQueue( clippedTriangles );
+
+			foreach ( Triangle3D clippedTriangle in clippedTriangles )
+			{
+				projectedFirst = _resolution.MapProjectedDepth( clippedTriangle.First );
+				projectedSecond = _resolution.MapProjectedDepth( clippedTriangle.Second );
+				projectedThird = _resolution.MapProjectedDepth( clippedTriangle.Third );
+
+				// Simple Phong Shading
+				// TODO: After implementing materials, move this entire thing into materials
+				Color faceColor = GetFaceColor( worldTriangle );
+
+				_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
+			}
 		}
 	}
 
@@ -138,7 +151,7 @@ public class RenderDevice : IRenderDevice<Color>
 	static readonly Plane3D[] _projectionPlanesToClip =
 	{
 		// near and far plane (front and back plane)
-		new( Vector3.UnitZ * .3f, Vector3.UnitZ ),
+		new( Vector3.Zero, Vector3.UnitZ ),
 		new( Vector3.UnitZ, -Vector3.UnitZ ),
 
 		// up and down plane
@@ -190,14 +203,14 @@ public class RenderDevice : IRenderDevice<Color>
 
 		if ( projectedFirst.X < -1f && projectedSecond.X < -1f && projectedThird.X < -1f )
 			return true;
-
+		
 		if ( projectedFirst.X > 1f && projectedSecond.X > 1f && projectedThird.X > 1f )
 			return true;
-
-
+		
+		
 		if ( projectedFirst.Y < -1f && projectedSecond.Y < -1f && projectedThird.Y < -1f )
 			return true;
-
+		
 		if ( projectedFirst.Y > 1f && projectedSecond.Y > 1f && projectedThird.Y > 1f )
 			return true;
 
