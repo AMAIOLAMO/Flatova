@@ -91,7 +91,7 @@ public class RenderApplication : IApplication
 		foreach ( Star star in _stars )
 			_device.RenderWorldPixel( star.Position, star.Color, _camera );
 
-		var testTriangle = new Triangle3D( Vector3.UnitY, Vector3.UnitX, Vector3.UnitZ );
+		var testTriangle = new Triangle3D( Vector3.Zero, Vector3.UnitX, Vector3.UnitZ );
 
 		_alreadyClippedTriangles.Clear();
 		// enqueue first triangle to clip
@@ -99,16 +99,14 @@ public class RenderApplication : IApplication
 
 		var planes = new Plane3D[]
 		{
-			new( Vector3.UnitX * .1f, Vector3.UnitX ),
-
-			new( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) ), -Vector3.UnitY ),
-			new( Vector3.UnitZ * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitZ ),
-
-			new( Vector3.UnitZ * ( float.Sin( ( float )GetTime() ) * .1f ), Vector3.UnitZ )
+			new( -Vector3.UnitY * float.Sin( ( float )GetTime() ), -Vector3.UnitY )
 		};
 
 		foreach ( Plane3D planeToClipAgainst in planes )
+		{
 			planeToClipAgainst.ClipTrianglesIntoQueue( in _alreadyClippedTriangles );
+			_device.RenderWorldRect( planeToClipAgainst.Position, Vector2.One * 5, Color.YELLOW, _camera );
+		}
 
 
 		foreach ( Triangle3D clippedTriangle in _alreadyClippedTriangles )

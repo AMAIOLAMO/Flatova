@@ -26,32 +26,13 @@ public readonly struct Plane3D
 			   Normal.Dot( Position );
 	}
 
-	public bool TryIntersectLine( Vector3 start, Vector3 end, out Vector3 intersectPoint )
-	{
-		Vector3 lineDirection = ( end - start ).Normalize();
-
-		float planeNormalSimilarityToLineDirection = Normal.Dot( lineDirection );
-
-		if ( MathUtils.AlmostEquals( planeNormalSimilarityToLineDirection, 0f ) )
-		{
-			intersectPoint = Vector3.Zero;
-
-			return false;
-		}
-
-		float scalar = ( Normal.Dot( Position ) - Normal.Dot( start ) ) / planeNormalSimilarityToLineDirection;
-
-		intersectPoint = start + lineDirection * scalar;
-
-		return true;
-	}
-
-	/// <summary>
-	///     Tries to intersect this line with the given <paramref name="plane" />
-	/// </summary>
 	public bool TryIntersectLine( Line3D line, out Vector3 intersectPoint ) =>
 		TryIntersectLine( line.Start, line.End, out intersectPoint );
 
+	/// <summary>
+	///     Returns the intersection with the line (assuming the line as an infinite line),
+	///     this method is unsafe and will <see cref="DivideByZeroException" /> if the plane is parallel to the line!
+	/// </summary>
 	public Vector3 IntersectLine( Vector3 start, Vector3 end )
 	{
 		Vector3 lineDirection = ( end - start ).Normalize();
@@ -61,6 +42,31 @@ public readonly struct Plane3D
 		float scalar = ( Normal.Dot( Position ) - Normal.Dot( start ) ) / planeNormalSimilarityToLineDirection;
 
 		return start + lineDirection * scalar;
+	}
+
+	/// <summary>
+	///     Tries to intersect this plane with the given line,
+	///     returns false if the given line is parallel to this plane
+	/// </summary>
+	public bool TryIntersectLine( Vector3 start, Vector3 end, out Vector3 intersectedPoint )
+	{
+		Vector3 lineDirection = ( end - start ).Normalize();
+
+		float planeNormalSimilarityToLineDirection = Normal.Dot( lineDirection );
+
+		if ( MathUtils.AlmostEquals( planeNormalSimilarityToLineDirection, 0f ) )
+		{
+			intersectedPoint = Vector3.Zero;
+
+			return false;
+		}
+
+
+		float scalar = ( Normal.Dot( Position ) - Normal.Dot( start ) ) / planeNormalSimilarityToLineDirection;
+
+		intersectedPoint = start + lineDirection * scalar;
+
+		return true;
 	}
 
 	// explicit "in" to know that we are modifying the queue
@@ -93,7 +99,6 @@ public readonly struct Plane3D
 	public bool TryClipTriangle( Triangle3D triangleToClip, in Queue<Triangle3D> clippedTriangles )
 	{
 		Span<Vector3> insidePoints = stackalloc Vector3[ 3 ];
-		
 		Span<Vector3> outsidePoints = stackalloc Vector3[ 3 ];
 
 		int insidePointCount = 0, outsidePointCount = 0;
@@ -129,13 +134,16 @@ public readonly struct Plane3D
 		}
 
 		// clip into a smaller triangle
-		if ( insidePointCount == 1 && outsidePointCount == 2 )
+		if ( insidePointCount == 1 )
 		{
+			Vector3 intersectedFirstPoint = IntersectLineOrDefault( insidePoints[ 0 ], outsidePoints[ 0 ], insidePoints[ 0 ] );
+			Vector3 intersectedSecondPoint = IntersectLineOrDefault( insidePoints[ 0 ], outsidePoints[ 1 ], insidePoints[ 0 ] );
+
 			var newTriangle = new Triangle3D
 			(
 				insidePoints[ 0 ],
-				IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] ),
-				IntersectLine( insidePoints[ 0 ], outsidePoints[ 1 ] )
+				intersectedFirstPoint,
+				intersectedSecondPoint
 			);
 
 			clippedTriangles.Enqueue( newTriangle );
@@ -144,9 +152,9 @@ public readonly struct Plane3D
 		}
 
 
-		if ( insidePointCount == 2 && outsidePointCount == 1 )
+		if ( insidePointCount == 2 )
 		{
-			Vector3 newFirstPoint = IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] );
+			Vector3 newFirstPoint = IntersectLineOrDefault( insidePoints[ 0 ], outsidePoints[ 0 ], insidePoints[ 0 ] );
 
 			var newFirstTriangle = new Triangle3D
 			(
@@ -155,7 +163,7 @@ public readonly struct Plane3D
 				newFirstPoint
 			);
 
-			Vector3 newSecondPoint = IntersectLine( insidePoints[ 1 ], outsidePoints[ 0 ] );
+			Vector3 newSecondPoint = IntersectLineOrDefault( insidePoints[ 1 ], outsidePoints[ 0 ], insidePoints[ 1 ] );
 
 			var newSecondTriangle = new Triangle3D
 			(
@@ -172,6 +180,11 @@ public readonly struct Plane3D
 
 		throw new Exception( "Impossible triangle clipping situation!" );
 	}
+
+	public Vector3 IntersectLineOrDefault( Vector3 insidePoint, Vector3 outsidePoint, Vector3 defaultValue ) =>
+		TryIntersectLine( insidePoint, outsidePoint, out Vector3 value ) ?
+			value :
+			defaultValue;
 
 
 	public Vector3 Position { get; }

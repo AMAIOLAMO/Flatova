@@ -73,7 +73,7 @@ public class RenderDevice : IRenderDevice<Color>
 				// Simple Phong Shading
 				// TODO: After implementing materials, move this entire thing into materials
 				Color faceColor = GetFaceColor( worldTriangle );
-
+				
 				_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
 			}
 		}
@@ -155,12 +155,12 @@ public class RenderDevice : IRenderDevice<Color>
 		new( Vector3.UnitZ, -Vector3.UnitZ ),
 
 		// up and down plane
-		new( -Vector3.UnitY, Vector3.UnitY ),
-		new( Vector3.UnitY, -Vector3.UnitY ),
+		new( -Vector3.UnitY *.5f, Vector3.UnitY ),
+		new( Vector3.UnitY * .5f, -Vector3.UnitY ),
 
 		// left and right plane
-		new( -Vector3.UnitX, Vector3.UnitX ),
-		new( Vector3.UnitX, -Vector3.UnitX )
+		new( -Vector3.UnitX *.5f, Vector3.UnitX ),
+		new( Vector3.UnitX *.5f, -Vector3.UnitX )
 	};
 
 	readonly Resolution _resolution;
@@ -194,25 +194,31 @@ public class RenderDevice : IRenderDevice<Color>
 
 	static bool IsAnyProjectedTriangleCulling( Vector3 projectedFirst, Vector3 projectedSecond, Vector3 projectedThird )
 	{
-		if ( projectedFirst.Z < 0f || projectedSecond.Z < 0f || projectedThird.Z < 0f )
+		// if ( projectedFirst.Z < 0f || projectedSecond.Z < 0f || projectedThird.Z < 0f )
+		// 	return true;
+
+		if ( projectedFirst.Z >= 1f || projectedSecond.Z >= 1f || projectedThird.Z >= 1f )
 			return true;
 
-		if ( projectedFirst.Z > 1f || projectedSecond.Z > 1f || projectedThird.Z > 1f )
-			return true;
 
-
-		if ( projectedFirst.X < -1f && projectedSecond.X < -1f && projectedThird.X < -1f )
+		if (
+			( projectedFirst.X < -1f && projectedSecond.X < -1f && projectedThird.X < -1f ) ||
+			( projectedFirst.X > 1f && projectedSecond.X > 1f && projectedThird.X > 1f ) ||
+			
+			( projectedFirst.Y < -1f && projectedSecond.Y < -1f && projectedThird.Y < -1f ) ||
+			( projectedFirst.Y > 1f && projectedSecond.Y > 1f && projectedThird.Y > 1f )
+		)
+		
 			return true;
 		
-		if ( projectedFirst.X > 1f && projectedSecond.X > 1f && projectedThird.X > 1f )
-			return true;
-		
-		
-		if ( projectedFirst.Y < -1f && projectedSecond.Y < -1f && projectedThird.Y < -1f )
-			return true;
-		
-		if ( projectedFirst.Y > 1f && projectedSecond.Y > 1f && projectedThird.Y > 1f )
-			return true;
+		// if (
+		// 	( projectedFirst.X < -.5f && projectedSecond.X < -.5f && projectedThird.X < -.5f ) ||
+		// 	( projectedFirst.X > .5f && projectedSecond.X > .5f && projectedThird.X > .5f ) ||
+		// 	
+		// 	( projectedFirst.Y < -.5f && projectedSecond.Y < -.5f && projectedThird.Y < -.5f ) ||
+		// 	( projectedFirst.Y > .5f && projectedSecond.Y > .5f && projectedThird.Y > .5f )
+		// )
+		// 	return true;
 
 		return false;
 	}
