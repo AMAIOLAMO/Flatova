@@ -61,17 +61,115 @@ public readonly struct Plane3D
 		float scalar = ( Normal.Dot( Position ) - Normal.Dot( start ) ) / planeNormalSimilarityToLineDirection;
 
 		return start + lineDirection * scalar;
-		
-		float planeDot = Normal.Dot( Position );
-		float ad = start.Dot( Normal );
-		float bd = end.Dot( Normal );
+	}
 
-		float t = ( -planeDot - ad ) / ( bd - ad );
+	// explicit "in" to know that we are modifying the queue
+	/// <summary>
+	///     clips the given <paramref name="triangles" />
+	///     and pass the clipped triangles back into <paramref name="triangles" />
+	/// </summary>
+	public void ClipTrianglesIntoQueue( in Queue<Triangle3D> triangles )
+	{
+		// because we know that queue is a FIFO structure
+		// we can be sure that if we dequeue the amount of the contents before hand it's okay to use the same queue on the process
+		int length = triangles.Count;
 
-		Vector3 lineStartToEnd = end - start;
-		Vector3 lineToIntersect = lineStartToEnd * t;
+		for ( int index = 0; index < length; index++ )
+		{
+			// dump all last clipped triangles from the buffer
+			Triangle3D clippingTriangle = triangles.Dequeue();
 
-		return start + lineToIntersect;
+			// enqueue the clipped triangles in the front of the working buffer
+			TryClipTriangle( clippingTriangle, triangles );
+		}
+	}
+
+	// TODO: Simplify and optimize this further as this is a performance critical method
+	/// <summary>
+	///     Tries to clip the given <paramref name="triangleToClip" />,
+	///     And Enqueues the clipped triangles into the given queue <paramref name="clippedTriangles" />,
+	///     Returns false if the triangle is from the opposite direction of the current plane's <see cref="Normal" />
+	/// </summary>
+	public bool TryClipTriangle( Triangle3D triangleToClip, in Queue<Triangle3D> clippedTriangles )
+	{
+		var insidePoints = new Vector3[ 3 ];
+		var outsidePoints = new Vector3[ 3 ];
+
+		int insidePointCount = 0, outsidePointCount = 0;
+
+		for ( int i = 0; i < 3; i++ )
+		{
+			Vector3 triangleVertex = triangleToClip[ i ];
+
+			float signedDistance = GetSignShortDistance( triangleVertex );
+
+			if ( signedDistance >= 0 )
+			{
+				insidePoints[ insidePointCount ] = triangleVertex;
+				++insidePointCount;
+			}
+			else
+			{
+				outsidePoints[ outsidePointCount ] = triangleVertex;
+				++outsidePointCount;
+			}
+		}
+
+		// no points are inside the plane to clip, failed to clip the triangle
+		if ( insidePointCount == 0 )
+			return false;
+
+		// the entire triangle is inside the clipping area, so no need to clip
+		if ( insidePointCount == 3 )
+		{
+			clippedTriangles.Enqueue( triangleToClip );
+
+			return true;
+		}
+
+		// clip into a smaller triangle
+		if ( insidePointCount == 1 && outsidePointCount == 2 )
+		{
+			var newTriangle = new Triangle3D
+			(
+				insidePoints[ 0 ],
+				IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] ),
+				IntersectLine( insidePoints[ 0 ], outsidePoints[ 1 ] )
+			);
+
+			clippedTriangles.Enqueue( newTriangle );
+
+			return true;
+		}
+
+
+		if ( insidePointCount == 2 && outsidePointCount == 1 )
+		{
+			Vector3 newFirstPoint = IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] );
+
+			var newFirstTriangle = new Triangle3D
+			(
+				insidePoints[ 0 ],
+				insidePoints[ 1 ],
+				newFirstPoint
+			);
+
+			Vector3 newSecondPoint = IntersectLine( insidePoints[ 1 ], outsidePoints[ 0 ] );
+
+			var newSecondTriangle = new Triangle3D
+			(
+				insidePoints[ 1 ],
+				newFirstPoint,
+				newSecondPoint
+			);
+
+			clippedTriangles.Enqueue( newFirstTriangle );
+			clippedTriangles.Enqueue( newSecondTriangle );
+
+			return true;
+		}
+
+		throw new Exception( "Impossible triangle clipping situation!" );
 	}
 
 

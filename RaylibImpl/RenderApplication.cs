@@ -94,26 +94,21 @@ public class RenderApplication : IApplication
 		var testTriangle = new Triangle3D( Vector3.UnitY, Vector3.UnitX, Vector3.UnitZ );
 
 		_alreadyClippedTriangles.Clear();
-		var plane = new Plane3D( Vector3.UnitX * .1f, Vector3.UnitX );
+		// enqueue first triangle to clip
+		_alreadyClippedTriangles.Enqueue( testTriangle );
 
-		_device.RenderWorldRect( plane.Position, Vector2.One * 10, Color.YELLOW, _camera );
-
-		// clip first plane
-		if ( TryClipTriangle( plane, testTriangle, _alreadyClippedTriangles ) )
+		var planes = new Plane3D[]
 		{
-			// if successfully clipped first, then clip second
-			var secondPlane = new Plane3D( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitY );
+			new( Vector3.UnitX * .1f, Vector3.UnitX ),
 
-			// clear working buffer
-			_currentlyClippingTriangles.Clear();
+			new( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitY ),
+			new( Vector3.UnitZ * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitZ ),
 
-			// dump all clipped triangles into currentlyClippingTriangles
-			while ( _alreadyClippedTriangles.TryDequeue( out Triangle3D clippingTriangle ) )
-				TryClipTriangle( secondPlane, clippingTriangle, _currentlyClippingTriangles );
+			new( Vector3.UnitZ * ( float.Sin( ( float )GetTime() ) * .1f ), Vector3.UnitZ )
+		};
 
-			foreach ( Triangle3D currentlyClippingTriangle in _currentlyClippingTriangles )
-				_alreadyClippedTriangles.Enqueue( currentlyClippingTriangle );
-		}
+		foreach ( Plane3D planeToClipAgainst in planes )
+			planeToClipAgainst.ClipTrianglesIntoQueue( in _alreadyClippedTriangles );
 
 
 		foreach ( Triangle3D clippedTriangle in _alreadyClippedTriangles )
@@ -145,14 +140,13 @@ public class RenderApplication : IApplication
 
 	readonly Queue<Triangle3D> _alreadyClippedTriangles = new();
 
-	readonly Queue<Triangle3D> _currentlyClippingTriangles = new();
-
 	Vector3 _cameraVelocity = Vector3.Zero;
 
 	float _rotationX;
 	float _rotationY;
 
 	float _targetFovRadians;
+
 
 	void UpdateZoom()
 	{
@@ -218,88 +212,6 @@ public class RenderApplication : IApplication
 			resultStrength += 1;
 
 		return resultStrength;
-	}
-
-	static bool TryClipTriangle( Plane3D plane, Triangle3D triangleToClip, Queue<Triangle3D> clippedTriangles )
-	{
-		var insidePoints = new Vector3[ 3 ];
-		var outsidePoints = new Vector3[ 3 ];
-
-		int insidePointCount = 0, outsidePointCount = 0;
-
-		for ( int i = 0; i < 3; i++ )
-		{
-			Vector3 triangleVertex = triangleToClip[ i ];
-
-			float signedDistance = plane.GetSignShortDistance( triangleVertex );
-
-			if ( signedDistance >= 0 )
-			{
-				insidePoints[ insidePointCount ] = triangleVertex;
-				++insidePointCount;
-			}
-			else
-			{
-				outsidePoints[ outsidePointCount ] = triangleVertex;
-				++outsidePointCount;
-			}
-		}
-
-		// no points are inside the plane to clip, failed to clip the triangle
-		if ( insidePointCount == 0 )
-			return false;
-
-		// the entire triangle is inside the clipping area, so no need to clip
-		if ( insidePointCount == 3 )
-		{
-			clippedTriangles.Enqueue( triangleToClip );
-
-			return true;
-		}
-
-		// clip into a smaller triangle
-		if ( insidePointCount == 1 && outsidePointCount == 2 )
-		{
-			var newTriangle = new Triangle3D
-			(
-				insidePoints[ 0 ],
-				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] ),
-				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 1 ] )
-			);
-
-			clippedTriangles.Enqueue( newTriangle );
-
-			return true;
-		}
-
-
-		if ( insidePointCount == 2 && outsidePointCount == 1 )
-		{
-			Vector3 newFirstPoint = plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] );
-
-			var newFirstTriangle = new Triangle3D
-			(
-				insidePoints[ 0 ],
-				insidePoints[ 1 ],
-				newFirstPoint
-			);
-
-			Vector3 newSecondPoint = plane.IntersectLine( insidePoints[ 1 ], outsidePoints[ 0 ] );
-
-			var newSecondTriangle = new Triangle3D
-			(
-				insidePoints[ 1 ],
-				newFirstPoint,
-				newSecondPoint
-			);
-
-			clippedTriangles.Enqueue( newFirstTriangle );
-			clippedTriangles.Enqueue( newSecondTriangle );
-
-			return true;
-		}
-
-		throw new Exception( "Impossible triangle clipping situation!" );
 	}
 }
 internal static class ColorExtensions
