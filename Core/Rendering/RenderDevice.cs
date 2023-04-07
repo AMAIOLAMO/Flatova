@@ -54,76 +54,15 @@ public class RenderDevice : IRenderDevice<Color>
 				continue;
 			}
 
-			var projectedTriangle = new Triangle3D( projectedFirst, projectedSecond, projectedThird );
+			projectedFirst = _resolution.MapProjectedDepth( projectedFirst );
+			projectedSecond = _resolution.MapProjectedDepth( projectedSecond );
+			projectedThird = _resolution.MapProjectedDepth( projectedThird );
 
-			if ( !TryClipTriangle
-			    (
-				    new Plane3D( Vector3.UnitZ * .1f, Vector3.UnitZ ),
-				    projectedTriangle, out Triangle3D[]? clippedProjectedTriangles
-			    ) )
-				continue;
-			// else clipping is successful
-
-			for ( int index = 0; index < clippedProjectedTriangles.Length; index++ )
-			{
-				Triangle3D clippedProjectedTriangle = clippedProjectedTriangles[ index ];
-
-				projectedFirst = _resolution.MapProjectedDepth( clippedProjectedTriangle.First );
-				projectedSecond = _resolution.MapProjectedDepth( clippedProjectedTriangle.Second );
-				projectedThird = _resolution.MapProjectedDepth( clippedProjectedTriangle.Third );
-
-				// Simple Phong Shading
-				// TODO: After implementing materials, move this entire thing into materials
-				Vector3 worldFaceCenter = worldTriangle.GetCenter();
-
-				var lightPosition = new Vector3( 4, 10, 2 );
-
-				Vector3 lightDirection = ( lightPosition - worldFaceCenter ).Normalize();
-
-				const float AMBIENT_LIGHTING_STRENGTH = 0.2f;
-				float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + AMBIENT_LIGHTING_STRENGTH, 1f );
-				int shadingColor = ( int )( phongShadingStrength * 255f );
-
-				Color faceColor = Color.WHITE;
-
-				if ( index == 0 )
-					faceColor = new Color( shadingColor, 0, 0, 255 );
-				else if ( index == 2 )
-					faceColor = new Color( 0, shadingColor, 0, 255 );
-				else if ( index == 3 )
-					faceColor = new Color( 0, 0, shadingColor, 255 );
-
-				_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
-			}
-
-
-			// TODO: Temporary Clipping
-			// if ( IsAnyProjectedTriangleCulling( projectedFirst, projectedSecond, projectedThird ) )
-			// {
-			// 	Raylib.DrawText( "Clipping", 0, 100, 17, Color.WHITE );
-			//
-			// 	continue;
-			// }
-
-			// projectedFirst = _resolution.MapProjectedDepth( projectedFirst );
-			// projectedSecond = _resolution.MapProjectedDepth( projectedSecond );
-			// projectedThird = _resolution.MapProjectedDepth( projectedThird );
-			//
 			// Simple Phong Shading
 			// TODO: After implementing materials, move this entire thing into materials
-			// Vector3 worldFaceCenter = worldTriangle.GetCenter();
-			//
-			// var lightPosition = new Vector3( 4, 10, 2 );
-			//
-			// Vector3 lightDirection = ( lightPosition - worldFaceCenter ).Normalize();
-			//
-			// const float AMBIENT_LIGHTING_STRENGTH = 0.2f;
-			// float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + AMBIENT_LIGHTING_STRENGTH, 1f );
-			// byte shadingByteColor = ( byte )( phongShadingStrength * 255f );
-			//
-			// var faceColor = new Color( shadingByteColor, shadingByteColor, shadingByteColor, ( byte )255 );
-			//
-			// _canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
+			Color faceColor = GetFaceColor( worldTriangle );
+
+			_canvasRenderer.DrawDepthTriangle( projectedFirst, projectedSecond, projectedThird, faceColor );
 		}
 	}
 
@@ -153,7 +92,7 @@ public class RenderDevice : IRenderDevice<Color>
 		}
 	}
 
-	public void RenderWorldLineSegment3D( Vector3 worldFromPosition, Vector3 worldToPosition, Color color, Camera camera )
+	public void RenderWorldLineSegment( Vector3 worldFromPosition, Vector3 worldToPosition, Color color, Camera camera )
 	{
 		Vector3 projectedA = camera.WorldProjectDepth( worldFromPosition );
 		Vector3 projectedB = camera.WorldProjectDepth( worldToPosition );
@@ -178,11 +117,11 @@ public class RenderDevice : IRenderDevice<Color>
 		_canvasRenderer.DrawDepthPixel( ( int )screenPoint.X, ( int )screenPoint.Y, screenPoint.Z, color );
 	}
 
-	public void RenderWorldTriangleLine( Triangle3D triangle, Color color, Camera camera )
+	public void RenderWorldTriangleLine( Vector3 a, Vector3 b, Vector3 c, Color color, Camera camera )
 	{
-		Vector3 projectedFirst = camera.WorldProjectDepth( triangle.First );
-		Vector3 projectedSecond = camera.WorldProjectDepth( triangle.Second );
-		Vector3 projectedThird = camera.WorldProjectDepth( triangle.Third );
+		Vector3 projectedFirst = camera.WorldProjectDepth( a );
+		Vector3 projectedSecond = camera.WorldProjectDepth( b );
+		Vector3 projectedThird = camera.WorldProjectDepth( c );
 
 		if ( IsAnyProjectedTriangleCulling( projectedFirst, projectedSecond, projectedThird ) )
 			return;
@@ -196,114 +135,43 @@ public class RenderDevice : IRenderDevice<Color>
 		_canvasRenderer.DrawDepthLine( projectedThird, projectedFirst, color );
 	}
 
+	static readonly Plane3D[] _projectionPlanesToClip =
+	{
+		// near and far plane (front and back plane)
+		new( Vector3.UnitZ * .3f, Vector3.UnitZ ),
+		new( Vector3.UnitZ, -Vector3.UnitZ ),
+
+		// up and down plane
+		new( -Vector3.UnitY, Vector3.UnitY ),
+		new( Vector3.UnitY, -Vector3.UnitY ),
+
+		// left and right plane
+		new( -Vector3.UnitX, Vector3.UnitX ),
+		new( Vector3.UnitX, -Vector3.UnitX )
+	};
+
 	readonly Resolution _resolution;
 
 	readonly ICanvasRenderer<Color> _canvasRenderer;
 
-	static bool TryClipTriangle( Plane3D plane, Triangle3D triangleToClip, out Triangle3D[]? clippedTriangles )
+	static Color GetFaceColor( Triangle3D worldTriangle )
 	{
-		var insidePoints = new Vector3[ 3 ];
-		var outsidePoints = new Vector3[ 3 ];
+		Vector3 worldFaceNormal = worldTriangle.GetNormal();
+		Vector3 worldFaceCenter = worldTriangle.GetCenter();
 
-		int insidePointCount = 0, outsidePointCount = 0;
+		var lightPosition = new Vector3( 4, 10, 2 );
 
-		float dFirst = plane.GetSignShortDistance( triangleToClip.First );
-		float dSecond = plane.GetSignShortDistance( triangleToClip.Second );
-		float dThird = plane.GetSignShortDistance( triangleToClip.Third );
+		Vector3 lightDirection = ( lightPosition - worldFaceCenter ).Normalize();
 
-		// TODO: Simplify this by making Triangle 3D give an enumerable vertex / point list
-		if ( dFirst >= 0 )
-		{
-			insidePoints[ insidePointCount ] = triangleToClip.First;
-			++insidePointCount;
-		}
-		else
-		{
-			outsidePoints[ outsidePointCount ] = triangleToClip.First;
-			++outsidePointCount;
-		}
+		const float AMBIENT_LIGHTING_STRENGTH = 0.2f;
+		float phongShadingStrength = float.Min( float.Max( 0f, lightDirection.Dot( worldFaceNormal ) ) + AMBIENT_LIGHTING_STRENGTH, 1f );
+		int shadingColor = ( int )( phongShadingStrength * 255f );
 
-		if ( dSecond >= 0 )
-		{
-			insidePoints[ insidePointCount ] = triangleToClip.Second;
-			++insidePointCount;
-		}
-		else
-		{
-			outsidePoints[ outsidePointCount ] = triangleToClip.Second;
-			++outsidePointCount;
-		}
+		var faceColor = new Color( shadingColor, shadingColor, shadingColor, 255 );
 
-		if ( dThird >= 0 )
-		{
-			insidePoints[ insidePointCount ] = triangleToClip.Third;
-			++insidePointCount;
-		}
-		else
-		{
-			outsidePoints[ outsidePointCount ] = triangleToClip.Third;
-			++outsidePointCount;
-		}
-
-		// no points are inside the plane to clip, failed to clip the triangle
-		if ( insidePointCount == 0 )
-		{
-			clippedTriangles = null;
-
-			return false;
-		}
-
-		// the entire triangle is inside the clipping area, so no need to clip
-		if ( insidePointCount == 3 )
-		{
-			clippedTriangles = new[] { triangleToClip };
-
-			return true;
-		}
-
-		// clip into a smaller triangle
-		if ( insidePointCount == 1 && outsidePointCount == 2 )
-		{
-			var newTriangle = new Triangle3D
-			(
-				insidePoints[ 0 ],
-				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] ),
-				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 1 ] )
-			);
-
-			clippedTriangles = new[] { newTriangle };
-
-			return true;
-		}
-
-
-		if ( insidePointCount == 2 && outsidePointCount == 1 )
-		{
-			Vector3 newFirstPoint = plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] );
-
-			var newFirstTriangle = new Triangle3D
-			(
-				insidePoints[ 0 ],
-				insidePoints[ 1 ],
-				newFirstPoint
-			);
-
-			Vector3 newSecondPoint = plane.IntersectLine( insidePoints[ 1 ], outsidePoints[ 0 ] );
-
-			var newSecondTriangle = new Triangle3D
-			(
-				insidePoints[ 1 ],
-				newFirstPoint,
-				newSecondPoint
-			);
-
-			clippedTriangles = new[] { newFirstTriangle, newSecondTriangle };
-
-			return true;
-		}
-
-		throw new Exception( "Impossible triangle clipping situation!" );
+		return faceColor;
 	}
+
 
 	static bool IsProjectedPointCulled( Vector3 projectedPoint ) =>
 		projectedPoint.X is < -1f or > 1f ||
@@ -313,8 +181,8 @@ public class RenderDevice : IRenderDevice<Color>
 
 	static bool IsAnyProjectedTriangleCulling( Vector3 projectedFirst, Vector3 projectedSecond, Vector3 projectedThird )
 	{
-		// if ( projectedFirst.Z < 0f || projectedSecond.Z < 0f || projectedThird.Z < 0f )
-		// 	return true;
+		if ( projectedFirst.Z < 0f || projectedSecond.Z < 0f || projectedThird.Z < 0f )
+			return true;
 
 		if ( projectedFirst.Z > 1f || projectedSecond.Z > 1f || projectedThird.Z > 1f )
 			return true;

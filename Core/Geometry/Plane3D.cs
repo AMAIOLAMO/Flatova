@@ -61,11 +61,20 @@ public readonly struct Plane3D
 		float scalar = ( Normal.Dot( Position ) - Normal.Dot( start ) ) / planeNormalSimilarityToLineDirection;
 
 		return start + lineDirection * scalar;
+		
+		float planeDot = Normal.Dot( Position );
+		float ad = start.Dot( Normal );
+		float bd = end.Dot( Normal );
+
+		float t = ( -planeDot - ad ) / ( bd - ad );
+
+		Vector3 lineStartToEnd = end - start;
+		Vector3 lineToIntersect = lineStartToEnd * t;
+
+		return start + lineToIntersect;
 	}
 
 
 	public Vector3 Position { get; }
 	public Vector3 Normal   { get; }
-
-	// x * N_x + y * N_x + z * N_x = P * N
 }

@@ -31,4 +31,18 @@ public readonly struct Triangle3D
 	public Vector3 First  { get; }
 	public Vector3 Second { get; }
 	public Vector3 Third  { get; }
+	
+	public Vector3 this[ int index ]
+	{
+		get
+		{
+			return index switch
+			{
+				0 => First,
+				1 => Second,
+				2 => Third,
+				_ => throw new IndexOutOfRangeException()
+			};
+		}
+	}
 }

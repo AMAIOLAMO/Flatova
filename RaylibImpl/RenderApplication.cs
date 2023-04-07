@@ -1,6 +1,5 @@
 using System.Numerics;
 using Flatova.Geometry;
-using Flatova.Geometry.Primitives;
 using Flatova.Rendering;
 using Flatova.World;
 using Raylib_cs;
@@ -38,19 +37,13 @@ public class RenderApplication : IApplication
 			Transform.FromPosition( Vector3.UnitZ * 10f )
 		);
 
-		var cube = new WorldObject
-		(
-			MeshPrimitives.Cube,
-			Transform.FromPosition( Vector3.UnitZ * -10f )
-		);
-
 		_spherePlanet = new WorldObject
 		(
 			Mesh.LoadObj( "sphere.obj" ),
 			Transform.FromPosition( Vector3.UnitZ * -30f )
 		);
 
-		_scene.AddRange( fox, cube, _spherePlanet );
+		_scene.AddRange( fox, _spherePlanet );
 
 		_stars = new List<Star>();
 
@@ -98,7 +91,38 @@ public class RenderApplication : IApplication
 		foreach ( Star star in _stars )
 			_device.RenderWorldPixel( star.Position, star.Color, _camera );
 
-		RenderWorldAxis();
+		var testTriangle = new Triangle3D( Vector3.UnitY, Vector3.UnitX, Vector3.UnitZ );
+
+		_alreadyClippedTriangles.Clear();
+		var plane = new Plane3D( Vector3.UnitX * .1f, Vector3.UnitX );
+
+		_device.RenderWorldRect( plane.Position, Vector2.One * 10, Color.YELLOW, _camera );
+
+		// clip first plane
+		if ( TryClipTriangle( plane, testTriangle, _alreadyClippedTriangles ) )
+		{
+			// if successfully clipped first, then clip second
+			var secondPlane = new Plane3D( Vector3.UnitY * ( .7f + float.Sin( ( float )GetTime() ) * .1f ), -Vector3.UnitY );
+
+			// clear working buffer
+			_currentlyClippingTriangles.Clear();
+
+			// dump all clipped triangles into currentlyClippingTriangles
+			while ( _alreadyClippedTriangles.TryDequeue( out Triangle3D clippingTriangle ) )
+				TryClipTriangle( secondPlane, clippingTriangle, _currentlyClippingTriangles );
+
+			foreach ( Triangle3D currentlyClippingTriangle in _currentlyClippingTriangles )
+				_alreadyClippedTriangles.Enqueue( currentlyClippingTriangle );
+		}
+
+
+		foreach ( Triangle3D clippedTriangle in _alreadyClippedTriangles )
+			_device.RenderWorldTriangleLine( clippedTriangle, Color.RED, _camera );
+
+		// original triangle
+		_device.RenderWorldTriangleLine( testTriangle, Color.PINK.WithAlpha( 100 ), _camera );
+
+		RenderWorldAxis( 80 );
 
 		DrawFPS( 0, 0 );
 
@@ -118,6 +142,10 @@ public class RenderApplication : IApplication
 	readonly WorldObject _spherePlanet;
 
 	readonly List<Star> _stars;
+
+	readonly Queue<Triangle3D> _alreadyClippedTriangles = new();
+
+	readonly Queue<Triangle3D> _currentlyClippingTriangles = new();
 
 	Vector3 _cameraVelocity = Vector3.Zero;
 
@@ -139,11 +167,11 @@ public class RenderApplication : IApplication
 		_camera.Profile.FovRadians = MathUtils.Lerp( _camera.Profile.FovRadians, _targetFovRadians, ZOOM_SPEED * GetFrameTime() );
 	}
 
-	void RenderWorldAxis()
+	void RenderWorldAxis( int alpha = 255 )
 	{
-		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitX, Color.GREEN, _camera );
-		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitY, Color.YELLOW, _camera );
-		_device.RenderWorldLineSegment3D( Vector3.Zero, Vector3.UnitZ, Color.BLUE, _camera );
+		_device.RenderWorldLineSegment( Vector3.Zero, Vector3.UnitX, Color.GREEN.WithAlpha( alpha ), _camera );
+		_device.RenderWorldLineSegment( Vector3.Zero, Vector3.UnitY, Color.YELLOW.WithAlpha( alpha ), _camera );
+		_device.RenderWorldLineSegment( Vector3.Zero, Vector3.UnitZ, Color.BLUE.WithAlpha( alpha ), _camera );
 	}
 
 
@@ -191,6 +219,92 @@ public class RenderApplication : IApplication
 
 		return resultStrength;
 	}
+
+	static bool TryClipTriangle( Plane3D plane, Triangle3D triangleToClip, Queue<Triangle3D> clippedTriangles )
+	{
+		var insidePoints = new Vector3[ 3 ];
+		var outsidePoints = new Vector3[ 3 ];
+
+		int insidePointCount = 0, outsidePointCount = 0;
+
+		for ( int i = 0; i < 3; i++ )
+		{
+			Vector3 triangleVertex = triangleToClip[ i ];
+
+			float signedDistance = plane.GetSignShortDistance( triangleVertex );
+
+			if ( signedDistance >= 0 )
+			{
+				insidePoints[ insidePointCount ] = triangleVertex;
+				++insidePointCount;
+			}
+			else
+			{
+				outsidePoints[ outsidePointCount ] = triangleVertex;
+				++outsidePointCount;
+			}
+		}
+
+		// no points are inside the plane to clip, failed to clip the triangle
+		if ( insidePointCount == 0 )
+			return false;
+
+		// the entire triangle is inside the clipping area, so no need to clip
+		if ( insidePointCount == 3 )
+		{
+			clippedTriangles.Enqueue( triangleToClip );
+
+			return true;
+		}
+
+		// clip into a smaller triangle
+		if ( insidePointCount == 1 && outsidePointCount == 2 )
+		{
+			var newTriangle = new Triangle3D
+			(
+				insidePoints[ 0 ],
+				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] ),
+				plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 1 ] )
+			);
+
+			clippedTriangles.Enqueue( newTriangle );
+
+			return true;
+		}
+
+
+		if ( insidePointCount == 2 && outsidePointCount == 1 )
+		{
+			Vector3 newFirstPoint = plane.IntersectLine( insidePoints[ 0 ], outsidePoints[ 0 ] );
+
+			var newFirstTriangle = new Triangle3D
+			(
+				insidePoints[ 0 ],
+				insidePoints[ 1 ],
+				newFirstPoint
+			);
+
+			Vector3 newSecondPoint = plane.IntersectLine( insidePoints[ 1 ], outsidePoints[ 0 ] );
+
+			var newSecondTriangle = new Triangle3D
+			(
+				insidePoints[ 1 ],
+				newFirstPoint,
+				newSecondPoint
+			);
+
+			clippedTriangles.Enqueue( newFirstTriangle );
+			clippedTriangles.Enqueue( newSecondTriangle );
+
+			return true;
+		}
+
+		throw new Exception( "Impossible triangle clipping situation!" );
+	}
+}
+internal static class ColorExtensions
+{
+	public static Color WithAlpha( this Color color, int alpha ) => new( color.r, color.g, color.b, alpha );
 }
 public readonly struct Star
 {
