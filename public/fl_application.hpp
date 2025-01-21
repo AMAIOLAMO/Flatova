@@ -5,7 +5,6 @@
 #include <fl_pipeline.hpp>
 
 #include <string>
-#include <vector>
 
 #include <vulkan/vulkan.h>
 
@@ -32,9 +31,6 @@ private:
     /// creates the vulkan instance using the glfw windowing system
     bool create_glfw_vulkan_instance(VkInstance *instance_ptr);
     
-    /// a helper function that returns the number of extension properties that's supported by your vulkan
-    /// vendor.
-    uint32_t get_vk_instance_extension_properties(std::vector<VkExtensionProperties> *properties_ptr);
 
     GLFWwindow *_win;
 
