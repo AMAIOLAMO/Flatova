@@ -3,6 +3,7 @@
 #define _FL_APPLICATION_H
 
 #include <fl_pipeline.hpp>
+#include <fl_vk_manager.hpp>
 
 #include <string>
 
@@ -22,15 +23,14 @@ public:
     Application(Application&) = delete;
     Application& operator=(const Application&) = delete;
 
+    void init();
+
     int run();
+
 
 private:
     int _width, _height;
     std::string _name;
-
-    /// creates the vulkan instance using the glfw windowing system
-    bool create_glfw_vulkan_instance(VkInstance *instance_ptr);
-    
 
     GLFWwindow *_win;
 
@@ -39,7 +39,16 @@ private:
         "vendor/shaders/demo_shader.frag.spv"
     };
 
-    VkInstance _instance;
+
+    // TODO: wrap this under a vulkan API manager (so it's easier to manage)
+    #ifdef NDEBUG
+        const bool _enable_validation_layers = false;
+    #else
+        const bool _enable_validation_layers = true;
+    #endif
+
+
+    VkManager _vk_manager;
 };
 
 

@@ -13,7 +13,7 @@ namespace fl {
 /// vendor.
 uint32_t get_vk_instance_extension_properties(std::vector<VkExtensionProperties> *properties_ptr);
 
-void log_glfw_required_extensions_support();
+bool are_layers_all_available(const std::vector<const char*> &layer_names);
 
 } // namespace fl
 

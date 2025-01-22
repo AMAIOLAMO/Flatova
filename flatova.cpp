@@ -9,5 +9,7 @@ int main(void) {
         640, 480, "Flatova"
     };
 
+    app.init();
+
     return app.run();
 }

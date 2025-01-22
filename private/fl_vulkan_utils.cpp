@@ -20,37 +20,32 @@ uint32_t get_vk_instance_extension_properties(std::vector<VkExtensionProperties>
     return property_count;
 }
 
+bool are_layers_all_available(const std::vector<const char*> &layer_names) {
+    uint32_t layer_count = 0;
+    vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
 
-void log_glfw_required_extensions_support() {
-    std::vector<VkExtensionProperties> properties;
-    uint32_t property_count = get_vk_instance_extension_properties(&properties);
+    std::vector<VkLayerProperties> available_layers{layer_count};
 
-    printf("[Extensions] Found Vk Extensions properties: %u\n", property_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
 
-    for(auto property : properties)
-        printf("\t%s\n", property.extensionName);
-
-
-    uint32_t glfw_extensions_count = 0;
-    const char **glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extensions_count);
-
-    printf("[Extensions] Glfw required extensions for vulkan: %u\n", glfw_extensions_count);
-    for(size_t i = 0; i < glfw_extensions_count; i++) {
+    for(const char *layer_name : layer_names) {
         bool found = false;
-        
-        for(auto property : properties)
-            if(strcmp(property.extensionName, glfw_extensions[i])) {
+
+        for(size_t i = 0; i < layer_count; i++) {
+            auto layer_property = available_layers[i];
+            
+            if(strcmp(layer_name, layer_property.layerName) == 0) {
                 found = true;
                 break;
             }
+        }
 
-        printf("\t%zu: ", i + 1);
-
-        if(found)
-            printf("Found supported extension: %s\n", glfw_extensions[i]);
-        else
-            printf("Extension: %s is unsupported\n", glfw_extensions[i]);
+        // searched through, but still not found, then not all validation layers are available
+        if(!found)
+            return false;
     }
+
+    return true;
 }
 
 } // namespace fl
