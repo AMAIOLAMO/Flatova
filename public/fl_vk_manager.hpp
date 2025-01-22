@@ -10,20 +10,26 @@ namespace fl {
 
 class VkManager {
 public:
-    VkManager();
+    VkManager(bool enable_debug);
     ~VkManager();
 
     VkManager(VkManager&) = delete;
     VkManager& operator=(VkManager&) = delete;
 
-    bool init(std::string app_name, bool enable_validation_layers);
+    bool init(std::string app_name);
 
 private:
+    void setup_debug_messenger(VkDebugUtilsMessageSeverityFlagsEXT severity);
+
     std::vector<const char*> _validation_layers = {
         "VK_LAYER_KHRONOS_validation"
     };
 
     VkInstance _instance;
+
+    bool _enable_debug;
+
+    VkDebugUtilsMessengerEXT _debug_messenger;
 };
 
 } // namespace fl
