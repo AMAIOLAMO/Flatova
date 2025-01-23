@@ -1,8 +1,11 @@
-#include <GLFW/glfw3.h>
-#include <cstring>
 #include <fl_vk_manager.hpp>
 
 #include <fl_vulkan_utils.hpp>
+
+#include <assert.h>
+#include <cstring>
+
+#include <GLFW/glfw3.h>
 
 namespace fl {
 
@@ -72,6 +75,18 @@ std::vector<const char*> get_req_instance_extensions(bool enable_validation_laye
 }
 
 bool VkManager::init(std::string app_name) {
+    if(setup_instance(app_name) == false)
+        return false;
+
+
+    // SETUP DEBUG STUFF
+    if(_enable_debug)
+        setup_debug_messenger();
+
+    return true;
+}
+
+bool VkManager::setup_instance(std::string app_name) {
     // APP INFO
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -105,28 +120,27 @@ bool VkManager::init(std::string app_name) {
     printf("[Vk Manager] Validation Layers fully Available: %s\n",
            validation_layers_available ? "True" : "False");
 
-    if(_enable_debug && validation_layers_available) {
-        uint32_t layer_count = 0;
-        vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-        
-        // used for global validation layers etc
-        create_info.enabledLayerCount = layer_count;
-        create_info.ppEnabledLayerNames = _validation_layers.data();
+    if(_enable_debug) {
 
-        printf("[Vk Manager] Validation layers enabled!\n");
+        if(validation_layers_available) {
+            uint32_t layer_count = 0;
+            vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+            // used for global validation layers etc
+            create_info.enabledLayerCount = layer_count;
+            create_info.ppEnabledLayerNames = _validation_layers.data();
+
+            printf("[Vk Manager] Validation layers enabled!\n");
+        }
+
+        VkDebugUtilsMessengerCreateInfoEXT debug_utils_create_info{};
+        populate_debug_messenger_create_info(&debug_utils_create_info);
+        create_info.pNext = &debug_utils_create_info;
+
     }
 
     if(vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS)
         return false;
-
-
-    // SETUP DEBUG STUFF
-    if(_enable_debug)
-        setup_debug_messenger(
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-        );
 
     return true;
 }
@@ -141,16 +155,25 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL validation_error_callback(
     return VK_FALSE;
 }
 
-void VkManager::setup_debug_messenger(VkDebugUtilsMessageSeverityFlagsEXT severity) {
-    VkDebugUtilsMessengerCreateInfoEXT create_info{};
-    create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    create_info.messageSeverity = severity;
-    create_info.messageType =
+void VkManager::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr) {
+    assert(info_ptr != nullptr && "Cannot populate a null debug message create info_ptr");
+
+    *info_ptr = {};
+
+    info_ptr->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    info_ptr->messageSeverity = _debug_severity;
+    info_ptr->messageType =
         VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    create_info.pfnUserCallback = validation_error_callback;
-    create_info.pUserData = nullptr;
+
+    info_ptr->pfnUserCallback = validation_error_callback;
+    info_ptr->pUserData = nullptr;
+}
+
+void VkManager::setup_debug_messenger() {
+    VkDebugUtilsMessengerCreateInfoEXT create_info{};
+    populate_debug_messenger_create_info(&create_info);
 
     // since these are extension functions, they are not automatically loaded in memory
     auto create_func = (PFN_vkCreateDebugUtilsMessengerEXT)

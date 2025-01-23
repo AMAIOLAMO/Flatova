@@ -19,7 +19,11 @@ public:
     bool init(std::string app_name);
 
 private:
-    void setup_debug_messenger(VkDebugUtilsMessageSeverityFlagsEXT severity);
+    bool setup_instance(std::string app_name);
+
+    void setup_debug_messenger();
+
+    void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
 
     std::vector<const char*> _validation_layers = {
         "VK_LAYER_KHRONOS_validation"
@@ -28,6 +32,11 @@ private:
     VkInstance _instance;
 
     bool _enable_debug;
+    VkDebugUtilsMessageSeverityFlagsEXT _debug_severity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+
 
     VkDebugUtilsMessengerEXT _debug_messenger;
 };
