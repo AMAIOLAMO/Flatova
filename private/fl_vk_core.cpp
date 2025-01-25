@@ -9,6 +9,8 @@
 
 namespace fl {
 
+#define core_info(...) do { printf("[Vk Core] INFO: " __VA_ARGS__); printf("\n"); } while(0)
+#define core_err(...) do { fprintf(stderr, "[Vk Core] ERROR: " __VA_ARGS__); fprintf(stderr, "\n"); } while(0)
 
 VkCore::VkCore(bool enable_debug) : _enable_debug(enable_debug) {
 }
@@ -22,37 +24,41 @@ VkCore::~VkCore() {
         if(destroy_debug_messenger_func != nullptr)
             destroy_debug_messenger_func(_instance, _debug_messenger, nullptr);
         else
-            fprintf(stderr, "[Vk Core] Cannot load debug messenger destroy function\n");
+            core_err("Cannot load debug messenger destroy function");
     }
 
+    vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkDestroyDevice(_logical_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
-    printf("[Vk Core] destroyed vk core\n");
+
+    core_info("destroyed vk core");
 }
 
 #define action_check(FUNC, MSG) do { \
     if((FUNC) == false) { \
-        fprintf(stderr, "[Vk Core] ACTION: \"" MSG "\" FAILED\n"); \
+        core_err("ACTION \"" MSG "\" FAILED"); \
         return false; \
     } \
-    printf("[Vk Core] ACTION: \"" MSG "\" SUCCESS\n"); \
+    core_info("ACTION \"" MSG "\" SUCCESS"); \
 } while(0)
 
-bool VkCore::init(std::string app_name) {
+bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     action_check(setup_instance(app_name), "setup instance");
 
     // SETUP DEBUG STUFF
     if(_enable_debug)
         setup_debug_messenger();
 
+    action_check(setup_glfw_surface(window_ptr), "setup glfw surface");
+
     _physical_device = pick_physical_device();
 
     if(_physical_device == VK_NULL_HANDLE) {
-        fprintf(stderr, "[Vk Core] Physical Device with graphics capabilities failed\n");
+        core_err("Physical Device with graphics capabilities failed");
         return false;
     }
     else
-        printf("[Vk Core] Found Physical Device\n");
+        core_info("Found Physical Device");
 
     action_check(find_queue_families(&_queue_family_idxs), "find suitable queue families");
     action_check(setup_logical_device(), "setup logical device");
@@ -62,6 +68,15 @@ bool VkCore::init(std::string app_name) {
         0, &_graphics_queue
     );
 
+    core_info("grabbed graphics queue");
+
+    vkGetDeviceQueue(
+        _logical_device, _queue_family_idxs.present.value(),
+        0, &_present_queue
+    );
+
+    core_info("grabbed present queue");
+
     return true;
 }
 
@@ -69,16 +84,16 @@ void log_glfw_required_extensions_support() {
     std::vector<VkExtensionProperties> properties;
     uint32_t property_count = get_vk_instance_extension_properties(&properties);
 
-    printf("[Vk Core] Found Vk Extensions properties: %u\n", property_count);
+    core_info("Found Vk Extensions properties: %u", property_count);
 
     for(auto property : properties)
-        printf("\t%s\n", property.extensionName);
+        core_info("\t%s", property.extensionName);
 
 
     uint32_t glfw_extensions_count = 0;
     const char **glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extensions_count);
 
-    printf("[Vk Core] Glfw required extensions for vulkan: %u\n", glfw_extensions_count);
+    core_info("Glfw required extensions for vulkan: %u", glfw_extensions_count);
     for(size_t i = 0; i < glfw_extensions_count; i++) {
         bool found = false;
         
@@ -88,12 +103,10 @@ void log_glfw_required_extensions_support() {
                 break;
             }
 
-        printf("\t%zu: ", i + 1);
-
         if(found)
-            printf("Found supported extension: %s\n", glfw_extensions[i]);
+            core_info("\t%zu: Supported extension: %s", i + 1, glfw_extensions[i]);
         else
-            printf("Extension: %s is unsupported\n", glfw_extensions[i]);
+            core_info("\t%zu: Unsupported extension: %s ", i + 1, glfw_extensions[i]);
     }
 }
 
@@ -105,7 +118,7 @@ std::vector<const char*> get_req_instance_extensions(bool enable_validation_laye
 
     if(enable_validation_layers) {
         app_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        printf("[Vk Core] Included DEBUG UTILS EXTENSION for validation layers\n");
+        core_info("Included DEBUG UTILS EXTENSION for validation layers");
     }
 
     return app_extensions;
@@ -144,7 +157,7 @@ bool VkCore::setup_instance(std::string app_name) {
 
     bool validation_layers_available = are_layers_all_available(_validation_layers);
 
-    printf("[Vk Core] Validation Layers fully Available: %s\n",
+    core_info("Validation Layers fully Available: %s",
            validation_layers_available ? "True" : "False");
 
     if(_enable_debug) {
@@ -157,7 +170,7 @@ bool VkCore::setup_instance(std::string app_name) {
             create_info.enabledLayerCount = layer_count;
             create_info.ppEnabledLayerNames = _validation_layers.data();
 
-            printf("[Vk Core] Validation layers enabled!\n");
+            core_info("Validation layers enabled!");
         }
 
         VkDebugUtilsMessengerCreateInfoEXT debug_utils_create_info{};
@@ -172,12 +185,20 @@ bool VkCore::setup_instance(std::string app_name) {
     return true;
 }
 
+bool VkCore::setup_glfw_surface(GLFWwindow *window_ptr) {
+    return glfwCreateWindowSurface(_instance, window_ptr, nullptr, &_surface) == VK_SUCCESS;
+}
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL validation_error_callback(
     VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     VkDebugUtilsMessageTypeFlagsEXT type,
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data_ptr, void *user_data_ptr) {
 
-    fprintf(stderr, "[Vk Core] Validation Layer: %s\n", callback_data_ptr->pMessage);
+    if(severity & (VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT))
+        core_info("Validation Layer -> %s", callback_data_ptr->pMessage);
+
+    if(severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        core_err("Validation Layer -> %s", callback_data_ptr->pMessage);
 
     return VK_FALSE;
 }
@@ -208,11 +229,10 @@ void VkCore::setup_debug_messenger() {
 
     if(create_func != nullptr) {
         create_func(_instance, &create_info, nullptr, &_debug_messenger);
-        printf("[Vk Core] Debug Messenger Created successfully\n");
+        core_info("Debug Messenger Created successfully");
     }
-    else {
-        printf("[Vk Core] Debug Messenger Failed to create\n");
-    }
+    else
+        core_err("Debug Messenger Failed to create");
 }
 
 VkPhysicalDevice VkCore::pick_physical_device() {
@@ -222,7 +242,7 @@ VkPhysicalDevice VkCore::pick_physical_device() {
     std::vector<VkPhysicalDevice> devices{device_count};
     vkEnumeratePhysicalDevices(_instance, &device_count, devices.data());
 
-    printf("[Vk Core] Found physical devices: %u \n", device_count);
+    core_info("Found physical devices: %u", device_count);
     
     for(auto &device : devices) {
         VkPhysicalDeviceFeatures device_features;
@@ -243,13 +263,22 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
     std::vector<VkQueueFamilyProperties> queue_family_props{queue_family_count};
     vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, queue_family_props.data());
 
+
     for(size_t i = 0; i < queue_family_props.size(); i++) {
         const auto &family_prop = queue_family_props[i];
 
-        if(family_prop.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if(family_prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             idxs_ptr->graphics = i;
+
+        VkBool32 surface_present_support = false;
+        // TODO: return value VK RESULT not handled
+        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device, i, _surface, &surface_present_support);
+
+        if(surface_present_support)
+            idxs_ptr->present = i;
+
+        if(idxs_ptr->graphics.has_value() && idxs_ptr->present.has_value())
             return true;
-        }
     }
     
     return false;

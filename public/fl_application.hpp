@@ -29,16 +29,12 @@ public:
 
 
 private:
-    int _width, _height;
-    std::string _name;
-
-    GLFWwindow *_win;
+    int init_glfw_window();
 
     Pipeline _pipeline {
         "vendor/shaders/demo_shader.vert.spv",
         "vendor/shaders/demo_shader.frag.spv"
     };
-
 
     #ifdef NDEBUG
         const bool _enable_validation_layers = false;
@@ -46,6 +42,10 @@ private:
         const bool _enable_validation_layers = true;
     #endif
 
+    int _width, _height;
+    std::string _name;
+
+    GLFWwindow *_win_ptr;
 
     VkCore _vk_core;
 };

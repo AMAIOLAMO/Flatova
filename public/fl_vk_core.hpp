@@ -3,6 +3,7 @@
 #define _FL_VK_MANAGER_H
 
 #include <vulkan/vulkan.h>
+#include <GLFW/glfw3.h>
 
 #include <string>
 #include <optional>
@@ -11,7 +12,7 @@
 namespace fl {
 
 struct QueueFamilyIdxs {
-    std::optional<uint32_t> graphics;
+    std::optional<uint32_t> graphics, present;
 };
 
 class VkCore {
@@ -22,28 +23,37 @@ public:
     VkCore(VkCore&) = delete;
     VkCore& operator=(VkCore&) = delete;
 
-    bool init(std::string app_name);
+    bool init(std::string app_name, GLFWwindow *window_ptr);
 
 private:
     bool setup_instance(std::string app_name);
 
     void setup_debug_messenger();
+    
+    bool setup_glfw_surface(GLFWwindow *window_ptr);
 
     VkPhysicalDevice pick_physical_device();
 
     bool setup_logical_device();
 
+
     bool find_queue_families(QueueFamilyIdxs *idxs_ptr);
 
     void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
 
+
+
     VkInstance _instance;
+    VkSurfaceKHR _surface;
 
     VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
     VkDevice _logical_device = VK_NULL_HANDLE;
 
     QueueFamilyIdxs _queue_family_idxs;
+
     VkQueue _graphics_queue;
+    VkQueue _present_queue;
+
 
 
     bool _enable_debug;
