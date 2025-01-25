@@ -6,7 +6,7 @@
 namespace fl {
 
 Application::Application(int width, int height, const std::string &name)
-    : _width(width), _height(height), _name(name), _win(nullptr), _vk_manager(_enable_validation_layers) {
+    : _width(width), _height(height), _name(name), _win(nullptr), _vk_core(_enable_validation_layers) {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -17,7 +17,7 @@ Application::Application(int width, int height, const std::string &name)
 }
 
 void Application::init() {
-    _vk_manager.init(_name);
+    _vk_core.init(_name);
 }
 
 int Application::run() {

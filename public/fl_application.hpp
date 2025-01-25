@@ -3,7 +3,7 @@
 #define _FL_APPLICATION_H
 
 #include <fl_pipeline.hpp>
-#include <fl_vk_manager.hpp>
+#include <fl_vk_core.hpp>
 
 #include <string>
 
@@ -40,7 +40,6 @@ private:
     };
 
 
-    // TODO: wrap this under a vulkan API manager (so it's easier to manage)
     #ifdef NDEBUG
         const bool _enable_validation_layers = false;
     #else
@@ -48,7 +47,7 @@ private:
     #endif
 
 
-    VkManager _vk_manager;
+    VkCore _vk_core;
 };
 
 

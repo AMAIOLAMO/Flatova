@@ -1,4 +1,4 @@
-#include <fl_vk_manager.hpp>
+#include <fl_vk_core.hpp>
 
 #include <fl_vulkan_utils.hpp>
 
@@ -9,11 +9,11 @@
 
 namespace fl {
 
-VkManager::VkManager(bool enable_debug) : _enable_debug(enable_debug) {
+VkCore::VkCore(bool enable_debug) : _enable_debug(enable_debug) {
 }
 
 
-VkManager::~VkManager() {
+VkCore::~VkCore() {
     if(_enable_debug) {
         auto destroy_debug_messenger_func = (PFN_vkDestroyDebugUtilsMessengerEXT)
             vkGetInstanceProcAddr(_instance, "vkDestroyDebugUtilsMessengerEXT");
@@ -21,18 +21,42 @@ VkManager::~VkManager() {
         if(destroy_debug_messenger_func != nullptr)
             destroy_debug_messenger_func(_instance, _debug_messenger, nullptr);
         else
-            fprintf(stderr, "[Vk Manager] Cannot load debug messenger destroy function\n");
+            fprintf(stderr, "[Vk Core] Cannot load debug messenger destroy function\n");
     }
 
     vkDestroyInstance(_instance, nullptr);
     printf("[VkManager] destroyed vulkan instance\n");
 }
 
+bool VkCore::init(std::string app_name) {
+    if(setup_instance(app_name) == false)
+        return false;
+
+    // SETUP DEBUG STUFF
+    if(_enable_debug)
+        setup_debug_messenger();
+
+    _physical_device = pick_physical_device();
+
+    if(_physical_device != VK_NULL_HANDLE)
+        printf("[Vk Core] Found Physical Device\n");
+    else
+        fprintf(stderr, "[Vk Core] Physical Device with graphics capabilities failed\n");
+
+    if(find_queue_families(&_queue_family_idxs) == false)
+        fprintf(stderr, "[Vk Core] Cannot find suitable queue families!\n");
+    else
+        printf("[Vk Core] Found suitable queue families!\n");
+
+
+    return true;
+}
+
 void log_glfw_required_extensions_support() {
     std::vector<VkExtensionProperties> properties;
     uint32_t property_count = get_vk_instance_extension_properties(&properties);
 
-    printf("[Vk Manager] Found Vk Extensions properties: %u\n", property_count);
+    printf("[Vk Core] Found Vk Extensions properties: %u\n", property_count);
 
     for(auto property : properties)
         printf("\t%s\n", property.extensionName);
@@ -41,7 +65,7 @@ void log_glfw_required_extensions_support() {
     uint32_t glfw_extensions_count = 0;
     const char **glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extensions_count);
 
-    printf("[Vk Manager] Glfw required extensions for vulkan: %u\n", glfw_extensions_count);
+    printf("[Vk Core] Glfw required extensions for vulkan: %u\n", glfw_extensions_count);
     for(size_t i = 0; i < glfw_extensions_count; i++) {
         bool found = false;
         
@@ -68,25 +92,15 @@ std::vector<const char*> get_req_instance_extensions(bool enable_validation_laye
 
     if(enable_validation_layers) {
         app_extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        printf("[Vk Manager] Included DEBUG UTILS EXTENSION for validation layers\n");
+        printf("[Vk Core] Included DEBUG UTILS EXTENSION for validation layers\n");
     }
 
     return app_extensions;
 }
 
-bool VkManager::init(std::string app_name) {
-    if(setup_instance(app_name) == false)
-        return false;
 
 
-    // SETUP DEBUG STUFF
-    if(_enable_debug)
-        setup_debug_messenger();
-
-    return true;
-}
-
-bool VkManager::setup_instance(std::string app_name) {
+bool VkCore::setup_instance(std::string app_name) {
     // APP INFO
     VkApplicationInfo app_info{};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -117,7 +131,7 @@ bool VkManager::setup_instance(std::string app_name) {
 
     bool validation_layers_available = are_layers_all_available(_validation_layers);
 
-    printf("[Vk Manager] Validation Layers fully Available: %s\n",
+    printf("[Vk Core] Validation Layers fully Available: %s\n",
            validation_layers_available ? "True" : "False");
 
     if(_enable_debug) {
@@ -130,7 +144,7 @@ bool VkManager::setup_instance(std::string app_name) {
             create_info.enabledLayerCount = layer_count;
             create_info.ppEnabledLayerNames = _validation_layers.data();
 
-            printf("[Vk Manager] Validation layers enabled!\n");
+            printf("[Vk Core] Validation layers enabled!\n");
         }
 
         VkDebugUtilsMessengerCreateInfoEXT debug_utils_create_info{};
@@ -150,12 +164,12 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL validation_error_callback(
     VkDebugUtilsMessageTypeFlagsEXT type,
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data_ptr, void *user_data_ptr) {
 
-    fprintf(stderr, "[Vk Manager] Validation Layer: %s\n", callback_data_ptr->pMessage);
+    fprintf(stderr, "[Vk Core] Validation Layer: %s\n", callback_data_ptr->pMessage);
 
     return VK_FALSE;
 }
 
-void VkManager::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr) {
+void VkCore::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr) {
     assert(info_ptr != nullptr && "Cannot populate a null debug message create info_ptr");
 
     *info_ptr = {};
@@ -171,7 +185,7 @@ void VkManager::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreate
     info_ptr->pUserData = nullptr;
 }
 
-void VkManager::setup_debug_messenger() {
+void VkCore::setup_debug_messenger() {
     VkDebugUtilsMessengerCreateInfoEXT create_info{};
     populate_debug_messenger_create_info(&create_info);
 
@@ -181,12 +195,52 @@ void VkManager::setup_debug_messenger() {
 
     if(create_func != nullptr) {
         create_func(_instance, &create_info, nullptr, &_debug_messenger);
-        printf("[Vk Manager] Debug Messenger Created successfully\n");
+        printf("[Vk Core] Debug Messenger Created successfully\n");
     }
     else {
-        printf("[Vk Manager] Debug Messenger Failed to create\n");
+        printf("[Vk Core] Debug Messenger Failed to create\n");
     }
 }
 
+VkPhysicalDevice VkCore::pick_physical_device() {
+    uint32_t device_count = 0;
+    vkEnumeratePhysicalDevices(_instance, &device_count, nullptr);
+
+    std::vector<VkPhysicalDevice> devices{device_count};
+    vkEnumeratePhysicalDevices(_instance, &device_count, devices.data());
+
+    printf("[Vk Core] Found physical devices: %u \n", device_count);
+    
+    for(auto &device : devices) {
+        VkPhysicalDeviceFeatures device_features;
+
+        vkGetPhysicalDeviceFeatures(device, &device_features);
+
+        if(device_features.geometryShader)
+            return device;
+    }
+
+    return VK_NULL_HANDLE;
+}
+
+bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, nullptr);
+
+    std::vector<VkQueueFamilyProperties> queue_family_props{queue_family_count};
+    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, queue_family_props.data());
+
+
+    for(size_t i = 0; i < queue_family_props.size(); i++) {
+        const auto &family_prop = queue_family_props[i];
+
+        if(family_prop.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            idxs_ptr->graphics = i;
+            return true;
+        }
+    }
+    
+    return false;
+}
 
 }; // namespace fl
