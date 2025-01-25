@@ -9,6 +9,7 @@
 
 namespace fl {
 
+
 VkCore::VkCore(bool enable_debug) : _enable_debug(enable_debug) {
 }
 
@@ -24,13 +25,21 @@ VkCore::~VkCore() {
             fprintf(stderr, "[Vk Core] Cannot load debug messenger destroy function\n");
     }
 
+    vkDestroyDevice(_logical_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
-    printf("[VkManager] destroyed vulkan instance\n");
+    printf("[Vk Core] destroyed vk core\n");
 }
 
+#define action_check(FUNC, MSG) do { \
+    if((FUNC) == false) { \
+        fprintf(stderr, "[Vk Core] ACTION: \"" MSG "\" FAILED\n"); \
+        return false; \
+    } \
+    printf("[Vk Core] ACTION: \"" MSG "\" SUCCESS\n"); \
+} while(0)
+
 bool VkCore::init(std::string app_name) {
-    if(setup_instance(app_name) == false)
-        return false;
+    action_check(setup_instance(app_name), "setup instance");
 
     // SETUP DEBUG STUFF
     if(_enable_debug)
@@ -38,16 +47,20 @@ bool VkCore::init(std::string app_name) {
 
     _physical_device = pick_physical_device();
 
-    if(_physical_device != VK_NULL_HANDLE)
-        printf("[Vk Core] Found Physical Device\n");
-    else
+    if(_physical_device == VK_NULL_HANDLE) {
         fprintf(stderr, "[Vk Core] Physical Device with graphics capabilities failed\n");
-
-    if(find_queue_families(&_queue_family_idxs) == false)
-        fprintf(stderr, "[Vk Core] Cannot find suitable queue families!\n");
+        return false;
+    }
     else
-        printf("[Vk Core] Found suitable queue families!\n");
+        printf("[Vk Core] Found Physical Device\n");
 
+    action_check(find_queue_families(&_queue_family_idxs), "find suitable queue families");
+    action_check(setup_logical_device(), "setup logical device");
+
+    vkGetDeviceQueue(
+        _logical_device, _queue_family_idxs.graphics.value(),
+        0, &_graphics_queue
+    );
 
     return true;
 }
@@ -230,7 +243,6 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
     std::vector<VkQueueFamilyProperties> queue_family_props{queue_family_count};
     vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, queue_family_props.data());
 
-
     for(size_t i = 0; i < queue_family_props.size(); i++) {
         const auto &family_prop = queue_family_props[i];
 
@@ -241,6 +253,37 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
     }
     
     return false;
+}
+
+bool VkCore::setup_logical_device() {
+    float queue_priority = 1.0f;
+    VkDeviceQueueCreateInfo queue_create_info{};
+    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    queue_create_info.queueFamilyIndex = _queue_family_idxs.graphics.value();
+    queue_create_info.queueCount = 1;
+    queue_create_info.pQueuePriorities = &queue_priority;
+
+    VkPhysicalDeviceFeatures device_features{};
+
+    vkGetPhysicalDeviceFeatures(_physical_device, &device_features);
+
+    VkDeviceCreateInfo device_create_info{};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    device_create_info.pQueueCreateInfos = &queue_create_info;
+    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pEnabledFeatures = &device_features;
+
+    device_create_info.enabledLayerCount = 0;
+
+    if(_enable_debug) {
+        device_create_info.enabledLayerCount = static_cast<uint32_t>(_validation_layers.size());
+        device_create_info.ppEnabledLayerNames = _validation_layers.data();
+    }
+
+    return vkCreateDevice(
+        _physical_device, &device_create_info,
+        nullptr, &_logical_device
+    ) == VK_SUCCESS;
 }
 
 }; // namespace fl
