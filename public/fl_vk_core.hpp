@@ -2,6 +2,8 @@
 #ifndef _FL_VK_MANAGER_H
 #define _FL_VK_MANAGER_H
 
+#include <fl_vk_device_manager.hpp>
+
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
 
@@ -32,7 +34,11 @@ private:
     
     bool setup_glfw_surface(GLFWwindow *window_ptr);
 
+    bool check_device_extension_support(VkPhysicalDevice device);
+
     VkPhysicalDevice pick_physical_device();
+
+    bool is_device_suitable(VkPhysicalDevice device);
 
     bool setup_logical_device();
 
@@ -43,22 +49,27 @@ private:
 
 
 
-    VkInstance _instance;
+    VkInstance   _instance;
     VkSurfaceKHR _surface;
 
+    VkDeviceManager *_device_manager_ptr;
+
     VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
-    VkDevice _logical_device = VK_NULL_HANDLE;
+    VkDevice         _logical_device  = VK_NULL_HANDLE;
 
     QueueFamilyIdxs _queue_family_idxs;
 
     VkQueue _graphics_queue;
     VkQueue _present_queue;
 
+    const std::vector<const char*> _device_req_extensions = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
 
 
     bool _enable_debug;
 
-    std::vector<const char*> _validation_layers = {
+    const std::vector<const char*> _validation_layers = {
         "VK_LAYER_KHRONOS_validation"
     };
 

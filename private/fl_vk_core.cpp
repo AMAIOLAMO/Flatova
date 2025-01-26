@@ -2,15 +2,17 @@
 
 #include <fl_vulkan_utils.hpp>
 
-#include <assert.h>
-#include <cstring>
 
 #include <GLFW/glfw3.h>
 
+#include <assert.h>
+#include <cstring>
+#include <set>
+
 namespace fl {
 
-#define core_info(...) do { printf("[Vk Core] INFO: " __VA_ARGS__); printf("\n"); } while(0)
-#define core_err(...) do { fprintf(stderr, "[Vk Core] ERROR: " __VA_ARGS__); fprintf(stderr, "\n"); } while(0)
+#define core_info(...) do { printf("[Vk Core] \033[0;37mINFO: " __VA_ARGS__); printf("\033[0m\n"); } while(0)
+#define core_err(...) do { fprintf(stderr, "[Vk Core] \033[0;31mERROR: " __VA_ARGS__); fprintf(stderr, "\033[0m\n"); } while(0)
 
 VkCore::VkCore(bool enable_debug) : _enable_debug(enable_debug) {
 }
@@ -31,6 +33,9 @@ VkCore::~VkCore() {
     vkDestroyDevice(_logical_device, nullptr);
     vkDestroyInstance(_instance, nullptr);
 
+    if(_device_manager_ptr)
+        delete _device_manager_ptr;
+
     core_info("destroyed vk core");
 }
 
@@ -49,6 +54,10 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     if(_enable_debug)
         setup_debug_messenger();
 
+    _device_manager_ptr = new VkDeviceManager {
+        _instance
+    };
+
     action_check(setup_glfw_surface(window_ptr), "setup glfw surface");
 
     _physical_device = pick_physical_device();
@@ -58,7 +67,7 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
         return false;
     }
     else
-        core_info("Found Physical Device");
+        core_info("Find Suitable Physical Device Success");
 
     action_check(find_queue_families(&_queue_family_idxs), "find suitable queue families");
     action_check(setup_logical_device(), "setup logical device");
@@ -204,8 +213,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL validation_error_callback(
 }
 
 void VkCore::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr) {
-    assert(info_ptr != nullptr && "Cannot populate a null debug message create info_ptr");
-
     *info_ptr = {};
 
     info_ptr->sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -236,33 +243,41 @@ void VkCore::setup_debug_messenger() {
 }
 
 VkPhysicalDevice VkCore::pick_physical_device() {
-    uint32_t device_count = 0;
-    vkEnumeratePhysicalDevices(_instance, &device_count, nullptr);
+    std::vector<VkPhysicalDevice> devices{};
+    _device_manager_ptr->enumerate_physical(&devices);
 
-    std::vector<VkPhysicalDevice> devices{device_count};
-    vkEnumeratePhysicalDevices(_instance, &device_count, devices.data());
-
-    core_info("Found physical devices: %u", device_count);
+    core_info("physical devices count: %zu", devices.size());
     
-    for(auto &device : devices) {
-        VkPhysicalDeviceFeatures device_features;
-
-        vkGetPhysicalDeviceFeatures(device, &device_features);
-
-        if(device_features.geometryShader)
+    for(auto &device : devices)
+        if(is_device_suitable(device))
             return device;
-    }
 
     return VK_NULL_HANDLE;
 }
 
+bool VkCore::check_device_extension_support(VkPhysicalDevice device) {
+    for(auto req_ext : _device_req_extensions) {
+        if(_device_manager_ptr->extension_exists(device, nullptr, req_ext) == false)
+            return false;
+    }
+
+    return true;
+}
+
+bool VkCore::is_device_suitable(VkPhysicalDevice device) {
+    VkPhysicalDeviceFeatures device_features;
+    vkGetPhysicalDeviceFeatures(device, &device_features);
+
+    if(check_device_extension_support(device) && device_features.geometryShader)
+        return true;
+
+    return false;
+}
+
+
 bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
-    uint32_t queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, nullptr);
-
-    std::vector<VkQueueFamilyProperties> queue_family_props{queue_family_count};
-    vkGetPhysicalDeviceQueueFamilyProperties(_physical_device, &queue_family_count, queue_family_props.data());
-
+    std::vector<VkQueueFamilyProperties> queue_family_props{};
+    _device_manager_ptr->get_physical_queue_family_props(_physical_device, &queue_family_props);
 
     for(size_t i = 0; i < queue_family_props.size(); i++) {
         const auto &family_prop = queue_family_props[i];
@@ -285,21 +300,31 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
 }
 
 bool VkCore::setup_logical_device() {
+    std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
+
+    std::set<uint32_t> unique_queue_families_idxs {
+        _queue_family_idxs.graphics.value(), _queue_family_idxs.present.value()
+    };
+
     float queue_priority = 1.0f;
-    VkDeviceQueueCreateInfo queue_create_info{};
-    queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_create_info.queueFamilyIndex = _queue_family_idxs.graphics.value();
-    queue_create_info.queueCount = 1;
-    queue_create_info.pQueuePriorities = &queue_priority;
+
+    for(auto queue_family_idx : unique_queue_families_idxs) {
+        VkDeviceQueueCreateInfo queue_info{};
+        queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info.queueFamilyIndex = queue_family_idx;
+        queue_info.queueCount = 1;
+        queue_info.pQueuePriorities = &queue_priority;
+
+        queue_create_infos.push_back(queue_info);
+    }
 
     VkPhysicalDeviceFeatures device_features{};
-
     vkGetPhysicalDeviceFeatures(_physical_device, &device_features);
 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_create_info.pQueueCreateInfos = &queue_create_info;
-    device_create_info.queueCreateInfoCount = 1;
+    device_create_info.pQueueCreateInfos = queue_create_infos.data();
+    device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
     device_create_info.pEnabledFeatures = &device_features;
 
     device_create_info.enabledLayerCount = 0;
