@@ -82,10 +82,6 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
 
     SwapChainSupportInfo swap_chain_support{};
 
-    action_check(
-        get_physical_swap_chain_support(_physical_device, _surface, &swap_chain_support),
-        "get swap chain support"
-    );
 
 
     return true;
@@ -270,7 +266,16 @@ bool VkCore::is_device_suitable(VkPhysicalDevice device) {
     VkPhysicalDeviceFeatures device_features;
     vkGetPhysicalDeviceFeatures(device, &device_features);
 
-    if(check_device_extension_support(device) && device_features.geometryShader)
+    if(check_device_extension_support(device) == false)
+        return false;
+    // else extensions supported
+
+    SwapChainSupportInfo support_info{};
+    get_physical_swap_chain_support(device, _surface, &support_info);
+
+    bool swap_chain_support = !support_info.formats.empty() && !support_info.present_modes.empty();
+
+    if(swap_chain_support && device_features.geometryShader)
         return true;
 
     return false;
