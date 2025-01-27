@@ -6,8 +6,11 @@
 #include <GLFW/glfw3.h>
 
 #include <assert.h>
+
 #include <cstring>
+#include <limits>
 #include <set>
+#include <algorithm>
 
 namespace fl {
 
@@ -29,8 +32,11 @@ VkCore::~VkCore() {
             core_err("Cannot load debug messenger destroy function");
     }
 
+    vkDestroySwapchainKHR(_logical_device, _swap_chain, nullptr);
+
     vkDestroySurfaceKHR(_instance, _surface, nullptr);
     vkDestroyDevice(_logical_device, nullptr);
+
     vkDestroyInstance(_instance, nullptr);
 
     if(_device_manager_ptr)
@@ -56,33 +62,39 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
 
     action_check(setup_glfw_surface(window_ptr), "setup glfw surface");
 
-    _physical_device = pick_physical_device();
+    VkPhysicalDevice physical_device = pick_physical_device();
 
-    if(_physical_device == VK_NULL_HANDLE) {
+    if(physical_device == VK_NULL_HANDLE) {
         core_err("Physical Device with graphics capabilities failed");
         return false;
     }
     else
         core_info("Find Suitable Physical Device Success");
 
-    action_check(find_queue_families(&_queue_family_idxs), "find suitable queue families");
-    action_check(setup_logical_device(), "setup logical device");
+    action_check(find_queue_families(physical_device, &_queue_family_idxs), "find suitable queue families");
+
+    VkDevice logical_device = VK_NULL_HANDLE;
+    action_check(setup_logical_device(physical_device, &logical_device), "Setup Logical Device");
 
     _device_manager_ptr = new VkDeviceManager {
-        _physical_device, _logical_device
+        physical_device, logical_device
     };
 
-    _device_manager_ptr->get_queue(_queue_family_idxs.graphics.value(), &_graphics_queue);
+    _logical_device = logical_device;
 
-    core_info("grabbed graphics queue");
+    _device_manager_ptr->get_queue(_queue_family_idxs.graphics.value(), &_graphics_queue);
+    if(_graphics_queue == VK_NULL_HANDLE)
+        core_err("graphics queue is null");
+    else
+        core_info("grabbed graphics queue");
 
     _device_manager_ptr->get_queue(_queue_family_idxs.present.value(), &_present_queue);
+    if(_graphics_queue == VK_NULL_HANDLE)
+        core_err("present queue is null");
+    else
+        core_info("grabbed present queue");
 
-    core_info("grabbed present queue");
-
-    SwapChainSupportInfo swap_chain_support{};
-
-
+    action_check(create_swap_chain(window_ptr, &_swap_chain), "create swap chain");
 
     return true;
 }
@@ -282,9 +294,9 @@ bool VkCore::is_device_suitable(VkPhysicalDevice device) {
 }
 
 
-bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
+bool VkCore::find_queue_families(VkPhysicalDevice physical_device, QueueFamilyIdxs *idxs_ptr) {
     std::vector<VkQueueFamilyProperties> queue_family_props{};
-    get_physical_queue_family_props(_physical_device, &queue_family_props);
+    get_physical_queue_family_props(physical_device, &queue_family_props);
 
     for(size_t i = 0; i < queue_family_props.size(); i++) {
         const auto &family_prop = queue_family_props[i];
@@ -292,7 +304,7 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
         if(family_prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             idxs_ptr->graphics = i;
 
-        if(is_physical_surface_supported(_physical_device, i, _surface))
+        if(is_physical_surface_supported(physical_device, i, _surface))
             idxs_ptr->present = i;
 
         if(idxs_ptr->graphics.has_value() && idxs_ptr->present.has_value())
@@ -302,7 +314,7 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
     return false;
 }
 
-bool VkCore::setup_logical_device() {
+bool VkCore::setup_logical_device(VkPhysicalDevice physical_device, VkDevice *logical_device_ptr) {
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos{};
 
     std::set<uint32_t> unique_queue_families_idxs {
@@ -322,7 +334,7 @@ bool VkCore::setup_logical_device() {
     }
 
     VkPhysicalDeviceFeatures device_features{};
-    vkGetPhysicalDeviceFeatures(_physical_device, &device_features);
+    vkGetPhysicalDeviceFeatures(physical_device, &device_features);
 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -342,10 +354,102 @@ bool VkCore::setup_logical_device() {
         device_create_info.ppEnabledLayerNames = _validation_layers.data();
     }
 
-    return vkCreateDevice(
-        _physical_device, &device_create_info,
-        nullptr, &_logical_device
-    ) == VK_SUCCESS;
+    return vkCreateDevice(physical_device, &device_create_info, nullptr, logical_device_ptr) == VK_SUCCESS;
+}
+
+VkSurfaceFormatKHR get_best_swap_surface_format(const std::vector<VkSurfaceFormatKHR> *surface_formats_ptr) {
+    for(const auto &surface_format : *surface_formats_ptr) {
+        // best format hardcoded
+        if(surface_format.format == VK_FORMAT_R8G8B8A8_SRGB &&
+            surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return surface_format;
+    }
+
+    assert(surface_formats_ptr->empty() == false && "Surface format vector cannot be empty!");
+    return (*surface_formats_ptr)[0];
+}
+
+VkPresentModeKHR get_best_swap_present_mode(const std::vector<VkPresentModeKHR> *present_mode_ptr) {
+    for(const auto &present_mode : *present_mode_ptr) {
+        // best format hardcoded
+        if(present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+            return present_mode;
+    }
+
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkExtent2D get_glfw_best_swap_extent(GLFWwindow *window_ptr, const VkSurfaceCapabilitiesKHR *capabilities_ptr) {
+    if(capabilities_ptr->currentExtent.width != std::numeric_limits<uint32_t>::max())
+        return capabilities_ptr->currentExtent;
+    // else
+
+    int width, height;
+    glfwGetFramebufferSize(window_ptr, &width, &height);
+    
+    VkExtent2D min_extent = capabilities_ptr->minImageExtent;
+    VkExtent2D max_extent = capabilities_ptr->maxImageExtent;
+
+    VkExtent2D extent {
+        std::clamp(static_cast<uint32_t>(width), min_extent.width, max_extent.width),
+        std::clamp(static_cast<uint32_t>(height), min_extent.height, max_extent.height)
+    };
+
+    return extent;
+}
+
+bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chain_ptr) {
+    SwapChainSupportInfo support_info{};
+
+    if(_device_manager_ptr->get_swap_chain_support(_surface, &support_info) == false)
+        return false;
+    // else
+    
+    VkSurfaceCapabilitiesKHR &capabilities = support_info.capabilities;
+    VkSurfaceFormatKHR surface_format = get_best_swap_surface_format(&support_info.formats);
+    VkPresentModeKHR present_mode = get_best_swap_present_mode(&support_info.present_modes);
+    VkExtent2D extent = get_glfw_best_swap_extent(window_ptr, &support_info.capabilities);
+
+    uint32_t image_count = capabilities.minImageCount + 1;
+    if(capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount)
+        image_count = capabilities.maxImageCount;
+    
+    VkSwapchainCreateInfoKHR create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = _surface;
+    create_info.minImageCount = capabilities.minImageCount;
+    create_info.imageFormat = surface_format.format;
+    create_info.imageColorSpace = surface_format.colorSpace;
+    create_info.imageExtent = extent;
+
+    create_info.imageArrayLayers = 1;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    QueueFamilyIdxs idxs{};
+    if(find_queue_families(_device_manager_ptr->get_physical(), &idxs) == false)
+        return false;
+
+    uint32_t queue_family_idxs[] = {idxs.graphics.value(), idxs.present.value()};
+
+    if(idxs.graphics != idxs.present) {
+        create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        create_info.queueFamilyIndexCount = sizeof(queue_family_idxs) / sizeof(queue_family_idxs[0]);
+        create_info.pQueueFamilyIndices = queue_family_idxs;
+    }
+    else
+        create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    create_info.preTransform = capabilities.currentTransform;
+
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+
+    create_info.presentMode = present_mode;
+    create_info.clipped = VK_TRUE;
+
+    // when window resize create new swap chain(not supported yet)
+    create_info.oldSwapchain = VK_NULL_HANDLE;
+
+    return _device_manager_ptr->create_swap_chain(&create_info, nullptr, swap_chain_ptr);
 }
 
 }; // namespace fl

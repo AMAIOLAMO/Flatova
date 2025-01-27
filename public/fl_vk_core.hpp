@@ -41,10 +41,11 @@ private:
 
     bool is_device_suitable(VkPhysicalDevice device);
 
-    bool setup_logical_device();
+    bool setup_logical_device(VkPhysicalDevice physical_device, VkDevice *logical_device_ptr);
 
+    bool find_queue_families(VkPhysicalDevice physical_device, QueueFamilyIdxs *idxs_ptr);
 
-    bool find_queue_families(QueueFamilyIdxs *idxs_ptr);
+    bool create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chain_ptr);
 
     void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
 
@@ -52,11 +53,11 @@ private:
 
     VkInstance   _instance;
     VkSurfaceKHR _surface;
+    VkSwapchainKHR _swap_chain;
 
     VkDeviceManager *_device_manager_ptr;
 
-    VkPhysicalDevice _physical_device = VK_NULL_HANDLE;
-    VkDevice         _logical_device  = VK_NULL_HANDLE;
+    VkDevice _logical_device  = VK_NULL_HANDLE;
 
     QueueFamilyIdxs _queue_family_idxs;
 
