@@ -29,9 +29,24 @@ const VkPhysicalDevice VkDeviceManager::get_physical() {
     return _physical;
 }
 
+const VkDevice VkDeviceManager::get_logical() {
+    return _logical;
+}
+
 bool VkDeviceManager::create_swap_chain(const VkSwapchainCreateInfoKHR *create_info_ptr,
                        const VkAllocationCallbacks *alloc_callback, VkSwapchainKHR *swap_chain_ptr) {
     return vkCreateSwapchainKHR(_logical, create_info_ptr, alloc_callback, swap_chain_ptr) == VK_SUCCESS;
 }
+
+uint32_t VkDeviceManager::get_swap_chain_images(VkSwapchainKHR swap_chain, std::vector<VkImage> *imgs_ptr) {
+    uint32_t image_count = 0;
+    vkGetSwapchainImagesKHR(_logical, swap_chain, &image_count, nullptr);
+
+    imgs_ptr->resize(image_count);
+    vkGetSwapchainImagesKHR(_logical, swap_chain, &image_count, imgs_ptr->data());
+
+    return image_count;
+}
+
 
 } // namespace fl

@@ -3,6 +3,7 @@
 #define _FL_VK_MANAGER_H
 
 #include <fl_vk_device_manager.hpp>
+#include <fl_logger.hpp>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -28,6 +29,11 @@ public:
 
     bool init(std::string app_name, GLFWwindow *window_ptr);
 
+    uint32_t get_swap_chain_images(std::vector<VkImage> *imgs_ptr);
+    VkDeviceManager* get_device_manager_ptr();
+
+    VkFormat get_chosen_img_format() const;
+
 private:
     bool setup_instance(std::string app_name);
 
@@ -49,11 +55,11 @@ private:
 
     void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
 
-
-
     VkInstance   _instance;
     VkSurfaceKHR _surface;
     VkSwapchainKHR _swap_chain;
+
+    VkFormat _chosen_img_format;
 
     VkDeviceManager *_device_manager_ptr;
 

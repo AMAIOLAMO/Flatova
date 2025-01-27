@@ -94,9 +94,15 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     else
         core_info("grabbed present queue");
 
+
     action_check(create_swap_chain(window_ptr, &_swap_chain), "create swap chain");
 
     return true;
+}
+
+
+VkDeviceManager* VkCore::get_device_manager_ptr() {
+    return _device_manager_ptr;
 }
 
 void log_glfw_required_extensions_support() {
@@ -410,6 +416,8 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chai
     VkPresentModeKHR present_mode = get_best_swap_present_mode(&support_info.present_modes);
     VkExtent2D extent = get_glfw_best_swap_extent(window_ptr, &support_info.capabilities);
 
+    _chosen_img_format = surface_format.format;
+
     uint32_t image_count = capabilities.minImageCount + 1;
     if(capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount)
         image_count = capabilities.maxImageCount;
@@ -450,6 +458,16 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chai
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     return _device_manager_ptr->create_swap_chain(&create_info, nullptr, swap_chain_ptr);
+}
+
+uint32_t VkCore::get_swap_chain_images(std::vector<VkImage> *imgs_ptr) {
+    assert(_swap_chain != VK_NULL_HANDLE && "swap chain needs to be initialized before getting the images! Initialize Vk Core first");
+
+    return _device_manager_ptr->get_swap_chain_images(_swap_chain, imgs_ptr);
+}
+
+VkFormat VkCore::get_chosen_img_format() const {
+    return _chosen_img_format;
 }
 
 }; // namespace fl
