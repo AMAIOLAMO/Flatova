@@ -54,10 +54,6 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     if(_enable_debug)
         setup_debug_messenger();
 
-    _device_manager_ptr = new VkDeviceManager {
-        _instance
-    };
-
     action_check(setup_glfw_surface(window_ptr), "setup glfw surface");
 
     _physical_device = pick_physical_device();
@@ -72,19 +68,25 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     action_check(find_queue_families(&_queue_family_idxs), "find suitable queue families");
     action_check(setup_logical_device(), "setup logical device");
 
-    vkGetDeviceQueue(
-        _logical_device, _queue_family_idxs.graphics.value(),
-        0, &_graphics_queue
-    );
+    _device_manager_ptr = new VkDeviceManager {
+        _physical_device, _logical_device
+    };
+
+    _device_manager_ptr->get_queue(_queue_family_idxs.graphics.value(), &_graphics_queue);
 
     core_info("grabbed graphics queue");
 
-    vkGetDeviceQueue(
-        _logical_device, _queue_family_idxs.present.value(),
-        0, &_present_queue
-    );
+    _device_manager_ptr->get_queue(_queue_family_idxs.present.value(), &_present_queue);
 
     core_info("grabbed present queue");
+
+    SwapChainSupportInfo swap_chain_support{};
+
+    action_check(
+        get_physical_swap_chain_support(_physical_device, _surface, &swap_chain_support),
+        "get swap chain support"
+    );
+
 
     return true;
 }
@@ -244,7 +246,7 @@ void VkCore::setup_debug_messenger() {
 
 VkPhysicalDevice VkCore::pick_physical_device() {
     std::vector<VkPhysicalDevice> devices{};
-    _device_manager_ptr->enumerate_physical(&devices);
+    get_physical_devices(_instance, &devices);
 
     core_info("physical devices count: %zu", devices.size());
     
@@ -257,7 +259,7 @@ VkPhysicalDevice VkCore::pick_physical_device() {
 
 bool VkCore::check_device_extension_support(VkPhysicalDevice device) {
     for(auto req_ext : _device_req_extensions) {
-        if(_device_manager_ptr->extension_exists(device, nullptr, req_ext) == false)
+        if(physical_device_extension_exists(device, nullptr, req_ext) == false)
             return false;
     }
 
@@ -277,7 +279,7 @@ bool VkCore::is_device_suitable(VkPhysicalDevice device) {
 
 bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
     std::vector<VkQueueFamilyProperties> queue_family_props{};
-    _device_manager_ptr->get_physical_queue_family_props(_physical_device, &queue_family_props);
+    get_physical_queue_family_props(_physical_device, &queue_family_props);
 
     for(size_t i = 0; i < queue_family_props.size(); i++) {
         const auto &family_prop = queue_family_props[i];
@@ -285,11 +287,7 @@ bool VkCore::find_queue_families(QueueFamilyIdxs *idxs_ptr) {
         if(family_prop.queueFlags & VK_QUEUE_GRAPHICS_BIT)
             idxs_ptr->graphics = i;
 
-        VkBool32 surface_present_support = false;
-        // TODO: return value VK RESULT not handled
-        vkGetPhysicalDeviceSurfaceSupportKHR(_physical_device, i, _surface, &surface_present_support);
-
-        if(surface_present_support)
+        if(is_physical_surface_supported(_physical_device, i, _surface))
             idxs_ptr->present = i;
 
         if(idxs_ptr->graphics.has_value() && idxs_ptr->present.has_value())
@@ -323,8 +321,13 @@ bool VkCore::setup_logical_device() {
 
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
     device_create_info.pQueueCreateInfos = queue_create_infos.data();
     device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
+
+    device_create_info.ppEnabledExtensionNames = _device_req_extensions.data();
+    device_create_info.enabledExtensionCount = static_cast<uint32_t>(_device_req_extensions.size());
+
     device_create_info.pEnabledFeatures = &device_features;
 
     device_create_info.enabledLayerCount = 0;

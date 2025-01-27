@@ -17,6 +17,7 @@ struct QueueFamilyIdxs {
     std::optional<uint32_t> graphics, present;
 };
 
+
 class VkCore {
 public:
     VkCore(bool enable_debug);
