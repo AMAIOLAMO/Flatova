@@ -32,6 +32,8 @@ void Application::init() {
         app_info("setup swap chain image views success!");
     else
         app_err("Failed setup swap chain image views!");
+
+    _pipeline.init(_vk_core.get_device_manager_ptr()->get_logical());
 }
 
 int Application::init_glfw_window() {

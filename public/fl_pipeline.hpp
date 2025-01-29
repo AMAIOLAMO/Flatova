@@ -2,7 +2,10 @@
 #ifndef _FL_PIPELINE_H
 #define _FL_PIPELINE_H
 
+#include <vulkan/vulkan_core.h>
+
 #include <string>
+#include <vector>
 
 namespace fl {
 
@@ -22,9 +25,17 @@ public:
     Pipeline(Pipeline&) = delete;
     Pipeline& operator=(Pipeline&) = delete;
 
+    bool init(VkDevice logical);
+
 private:
     // creates a graphics pipeline
     bool create_graphics(const std::string &vert_path, const std::string &frag_path);
+    bool create_shader_module(const std::vector<char> *shader_code_ptr, VkShaderModule *module_ptr);
+
+    const std::string _vert_path;
+    const std::string _frag_path;
+
+    VkDevice _logical_device = VK_NULL_HANDLE;
 };
 
 } // namespace fl

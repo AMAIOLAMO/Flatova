@@ -4,7 +4,7 @@
 
 namespace fl {
 
-bool read_shader_compiled(const std::string &path, std::vector<char> *res_ptr) {
+bool read_compiled_shader(const std::string &path, std::vector<char> *res_ptr) {
     std::ifstream file{
         path,
         std::ios::ate | std::ios::binary
