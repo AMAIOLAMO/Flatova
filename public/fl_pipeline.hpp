@@ -9,7 +9,7 @@
 
 namespace fl {
 
-// A Pipeline handles the generic linear rendering pipeline:
+// A Pipeline wraps around the generic rendering pipeline provided by Vulkan:
 // -> Vertex & Index Buffer
 // 1. Input Assembler
 // 2. Vertex Shader
@@ -25,15 +25,27 @@ public:
     Pipeline(Pipeline&) = delete;
     Pipeline& operator=(Pipeline&) = delete;
 
-    bool init(VkDevice logical);
+    bool init(VkDevice logical, VkExtent2D extent);
 
 private:
     // creates a graphics pipeline
     bool create_graphics(const std::string &vert_path, const std::string &frag_path);
     bool create_shader_module(const std::vector<char> *shader_code_ptr, VkShaderModule *module_ptr);
+    bool create_render_pass();
+
+    std::vector<VkDynamicState> _dynamic_states = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+    };
 
     const std::string _vert_path;
     const std::string _frag_path;
+
+    // layout of the uniformed values passed into the vertex and fragment shaders
+    VkPipelineLayout _layout;
+
+    VkViewport _viewport;
+    VkRect2D   _scissor;
 
     VkDevice _logical_device = VK_NULL_HANDLE;
 };

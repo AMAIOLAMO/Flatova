@@ -1,0 +1,7 @@
+# swap chain
+    swap chains and it's respective constructed data should be encapsulated together for better
+    retreival of information
+
+# pipeline
+    Viewports and scissors can be customized dynamically or statically depending on the applications needs
+    create some APIs that allow the application to be able to customize the viewport & scissor's extents

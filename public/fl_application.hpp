@@ -33,11 +33,6 @@ private:
 
     bool setup_swap_chain_views();
 
-    Pipeline _pipeline {
-        "vendor/shaders/demo_shader.vert.spv",
-        "vendor/shaders/demo_shader.frag.spv"
-    };
-
     std::vector<VkImageView> _swap_chain_views{};
     std::vector<VkImage> _swap_chain_imgs{};
 
@@ -54,6 +49,11 @@ private:
     GLFWwindow *_win_ptr;
 
     VkCore _vk_core;
+
+    Pipeline _pipeline {
+        "vendor/shaders/demo_shader.vert.spv",
+        "vendor/shaders/demo_shader.frag.spv"
+    };
 };
 
 

@@ -105,6 +105,10 @@ VkDeviceManager* VkCore::get_device_manager_ptr() {
     return _device_manager_ptr;
 }
 
+VkExtent2D VkCore::get_swap_chain_extent() const {
+    return _chosen_extent;
+}
+
 void log_glfw_required_extensions_support() {
     std::vector<VkExtensionProperties> properties;
     uint32_t property_count = get_vk_instance_extension_properties(&properties);
@@ -417,6 +421,7 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chai
     VkExtent2D extent = get_glfw_best_swap_extent(window_ptr, &support_info.capabilities);
 
     _chosen_img_format = surface_format.format;
+    _chosen_extent = extent;
 
     uint32_t image_count = capabilities.minImageCount + 1;
     if(capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount)

@@ -33,7 +33,7 @@ public:
     VkDeviceManager* get_device_manager_ptr();
 
     VkFormat get_chosen_img_format() const;
-
+    VkExtent2D get_swap_chain_extent() const;
 private:
     bool setup_instance(std::string app_name);
 
@@ -60,6 +60,7 @@ private:
     VkSwapchainKHR _swap_chain;
 
     VkFormat _chosen_img_format;
+    VkExtent2D _chosen_extent;
 
     VkDeviceManager *_device_manager_ptr;
 
