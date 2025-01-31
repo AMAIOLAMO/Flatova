@@ -3,7 +3,8 @@
 #define _FL_VK_MANAGER_H
 
 #include <fl_vk_device_manager.hpp>
-#include <fl_logger.hpp>
+#include <fl_vk_instance.hpp>
+#include <fl_swapchain.hpp>
 
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
@@ -51,13 +52,15 @@ private:
 
     bool find_queue_families(VkPhysicalDevice physical_device, QueueFamilyIdxs *idxs_ptr);
 
-    bool create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chain_ptr);
+    bool create_swap_chain(GLFWwindow *window_ptr);
 
     void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
 
-    VkInstance   _instance;
+    Instance _instance;
+
     VkSurfaceKHR _surface;
-    VkSwapchainKHR _swap_chain;
+    Swapchain _swap_chain;
+    /*VkSwapchainKHR _swap_chain;*/
 
     VkFormat _chosen_img_format;
     VkExtent2D _chosen_extent;

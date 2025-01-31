@@ -2,7 +2,6 @@
 
 #include <fl_vulkan_utils.hpp>
 
-
 #include <GLFW/glfw3.h>
 
 #include <assert.h>
@@ -24,20 +23,18 @@ VkCore::VkCore(bool enable_debug) : _enable_debug(enable_debug) {
 VkCore::~VkCore() {
     if(_enable_debug) {
         auto destroy_debug_messenger_func = (PFN_vkDestroyDebugUtilsMessengerEXT)
-            vkGetInstanceProcAddr(_instance, "vkDestroyDebugUtilsMessengerEXT");
+            _instance.get_instance_proc_addr("vkDestroyDebugUtilsMessengerEXT");
 
         if(destroy_debug_messenger_func != nullptr)
-            destroy_debug_messenger_func(_instance, _debug_messenger, nullptr);
+            destroy_debug_messenger_func(_instance.get_raw_handle(), _debug_messenger, nullptr);
         else
             core_err("Cannot load debug messenger destroy function");
     }
 
-    vkDestroySwapchainKHR(_logical_device, _swap_chain, nullptr);
-
-    vkDestroySurfaceKHR(_instance, _surface, nullptr);
+    // TODO: HACK: the swap chain should handle this itself
+    vkDestroySwapchainKHR(_logical_device, _swap_chain.get_raw_handle(), nullptr);
+    _instance.destroy_surface(_surface, nullptr);
     vkDestroyDevice(_logical_device, nullptr);
-
-    vkDestroyInstance(_instance, nullptr);
 
     if(_device_manager_ptr)
         delete _device_manager_ptr;
@@ -95,7 +92,7 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
         core_info("grabbed present queue");
 
 
-    action_check(create_swap_chain(window_ptr, &_swap_chain), "create swap chain");
+    action_check(create_swap_chain(window_ptr), "create swap chain");
 
     return true;
 }
@@ -190,7 +187,6 @@ bool VkCore::setup_instance(std::string app_name) {
            validation_layers_available ? "True" : "False");
 
     if(_enable_debug) {
-
         if(validation_layers_available) {
             uint32_t layer_count = 0;
             vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -205,17 +201,13 @@ bool VkCore::setup_instance(std::string app_name) {
         VkDebugUtilsMessengerCreateInfoEXT debug_utils_create_info{};
         populate_debug_messenger_create_info(&debug_utils_create_info);
         create_info.pNext = &debug_utils_create_info;
-
     }
 
-    if(vkCreateInstance(&create_info, nullptr, &_instance) != VK_SUCCESS)
-        return false;
-
-    return true;
+    return _instance.init(&create_info, nullptr);
 }
 
 bool VkCore::setup_glfw_surface(GLFWwindow *window_ptr) {
-    return glfwCreateWindowSurface(_instance, window_ptr, nullptr, &_surface) == VK_SUCCESS;
+    return glfwCreateWindowSurface(_instance.get_raw_handle(), window_ptr, nullptr, &_surface) == VK_SUCCESS;
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL validation_error_callback(
@@ -252,10 +244,10 @@ void VkCore::setup_debug_messenger() {
 
     // since these are extension functions, they are not automatically loaded in memory
     auto create_func = (PFN_vkCreateDebugUtilsMessengerEXT)
-        vkGetInstanceProcAddr(_instance, "vkCreateDebugUtilsMessengerEXT");
+        _instance.get_instance_proc_addr("vkCreateDebugUtilsMessengerEXT");
 
     if(create_func != nullptr) {
-        create_func(_instance, &create_info, nullptr, &_debug_messenger);
+        create_func(_instance.get_raw_handle(), &create_info, nullptr, &_debug_messenger);
         core_info("Debug Messenger Created successfully");
     }
     else
@@ -264,7 +256,7 @@ void VkCore::setup_debug_messenger() {
 
 VkPhysicalDevice VkCore::pick_physical_device() {
     std::vector<VkPhysicalDevice> devices{};
-    get_physical_devices(_instance, &devices);
+    _instance.get_physical_devices(&devices);
 
     core_info("physical devices count: %zu", devices.size());
     
@@ -408,7 +400,7 @@ VkExtent2D get_glfw_best_swap_extent(GLFWwindow *window_ptr, const VkSurfaceCapa
     return extent;
 }
 
-bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chain_ptr) {
+bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
     SwapChainSupportInfo support_info{};
 
     if(_device_manager_ptr->get_swap_chain_support(_surface, &support_info) == false)
@@ -462,13 +454,12 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr, VkSwapchainKHR *swap_chai
     // when window resize create new swap chain(not supported yet)
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
-    return _device_manager_ptr->create_swap_chain(&create_info, nullptr, swap_chain_ptr);
+    return _swap_chain.init(_device_manager_ptr->get_logical(), &create_info, nullptr);
+    /*return _device_manager_ptr->create_swap_chain(&create_info, nullptr, &_swap_chain);*/
 }
 
 uint32_t VkCore::get_swap_chain_images(std::vector<VkImage> *imgs_ptr) {
-    assert(_swap_chain != VK_NULL_HANDLE && "swap chain needs to be initialized before getting the images! Initialize Vk Core first");
-
-    return _device_manager_ptr->get_swap_chain_images(_swap_chain, imgs_ptr);
+    return _device_manager_ptr->get_swap_chain_images(&_swap_chain, imgs_ptr);
 }
 
 VkFormat VkCore::get_chosen_img_format() const {

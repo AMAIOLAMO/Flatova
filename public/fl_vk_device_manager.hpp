@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan.h>
 #include <fl_vulkan_utils.hpp>
+#include <fl_swapchain.hpp>
 
 namespace fl {
 
@@ -20,10 +21,10 @@ public:
 
     const VkDevice get_logical();
 
-    bool create_swap_chain(const VkSwapchainCreateInfoKHR *create_info_ptr,
-                       const VkAllocationCallbacks *alloc_callback, VkSwapchainKHR *swap_chain_ptr);
-
-    uint32_t get_swap_chain_images(VkSwapchainKHR swap_chain, std::vector<VkImage> *imgs_ptr);
+    /*bool create_swap_chain(const VkSwapchainCreateInfoKHR *create_info_ptr,*/
+    /*                   const VkAllocationCallbacks *alloc_callback, VkSwapchainKHR *swap_chain_ptr);*/
+    /**/
+    uint32_t get_swap_chain_images(Swapchain *swap_chain_ptr, std::vector<VkImage> *imgs_ptr);
 
 private:
     VkPhysicalDevice _physical;
