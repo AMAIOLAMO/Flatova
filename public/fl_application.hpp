@@ -33,8 +33,13 @@ private:
 
     bool setup_swap_chain_views();
 
-    std::vector<VkImageView> _swap_chain_views{};
-    std::vector<VkImage> _swap_chain_imgs{};
+    bool create_render_pass(Swapchain *swap_chain_ptr, VkDevice device);
+
+    VkRenderPass _render_pass = VK_NULL_HANDLE;
+
+    std::vector<VkImageView>   _swpchn_views{};
+    std::vector<VkImage>       _swpchn_imgs{};
+    std::vector<VkFramebuffer> _swpchn_frame_buffers{};
 
 
     #ifdef NDEBUG
@@ -46,7 +51,7 @@ private:
     int _width, _height;
     std::string _name;
 
-    GLFWwindow *_win_ptr;
+    GLFWwindow *_win_ptr = nullptr;
 
     VkCore _vk_core;
 

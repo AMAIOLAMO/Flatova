@@ -6,7 +6,7 @@
 
 int main(void) {
     fl::Application app {
-        640, 480, "Flatova"
+        1000, 800, "Flatova"
     };
 
     app.init();

@@ -26,11 +26,12 @@ public:
     Pipeline(Pipeline&) = delete;
     Pipeline& operator=(Pipeline&) = delete;
 
-    bool init(VkDevice logical, Swapchain *swap_chain_ptr);
+    bool init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass);
 
 private:
     // creates a graphics pipeline
-    bool create_graphics(const std::string &vert_path, const std::string &frag_path);
+    bool create_graphics(VkRenderPass render_pass,
+                         const std::string &vert_path, const std::string &frag_path);
     bool create_shader_module(const std::vector<char> *shader_code_ptr, VkShaderModule *module_ptr);
     bool create_render_pass();
 
@@ -45,7 +46,6 @@ private:
 
     Swapchain *_swap_chain_ptr = nullptr;
 
-    VkRenderPass _render_pass = VK_NULL_HANDLE;
     // layout of the uniformed values passed into the vertex and fragment shaders
     VkPipelineLayout _layout = VK_NULL_HANDLE;
 

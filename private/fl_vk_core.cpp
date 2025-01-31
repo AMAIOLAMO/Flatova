@@ -463,10 +463,6 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
     return _swap_chain.init(_device_manager_ptr->get_logical(), &create_info, nullptr);
 }
 
-/*uint32_t VkCore::get_swap_chain_images(std::vector<VkImage> *imgs_ptr) {*/
-/*    return _device_manager_ptr->get_swap_chain_images(&_swap_chain, imgs_ptr);*/
-/*}*/
-
 VkFormat VkCore::get_chosen_img_format() const {
     return _chosen_img_format;
 }

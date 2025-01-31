@@ -12,11 +12,10 @@ Pipeline::Pipeline(const std::string &vert_path, const std::string &frag_path)
 
 Pipeline::~Pipeline() {
     vkDestroyPipelineLayout(_logical_device, _layout, nullptr);
-    vkDestroyRenderPass(_logical_device, _render_pass, nullptr);
     vkDestroyPipeline(_logical_device, _graphics, nullptr);
 }
 
-bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
+bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass) {
     _logical_device = logical;
     _swap_chain_ptr = swap_chain_ptr;
 
@@ -28,12 +27,7 @@ bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
         return false;
     }
 
-    if(create_render_pass() == false) {
-        fprintf(stderr, "[Pipeline] failed to create render pass\n");
-        return false;
-    }
-
-    if(create_graphics(_vert_path, _frag_path) == false) {
+    if(create_graphics(render_pass, _vert_path, _frag_path) == false) {
         fprintf(stderr, "[Pipeline] failed create graphics pipeline\n");
         return false;
     }
@@ -53,7 +47,8 @@ bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
     return true;
 }
 
-bool Pipeline::create_graphics(const std::string &vert_path, const std::string &frag_path) {
+bool Pipeline::create_graphics(VkRenderPass render_pass,
+                               const std::string &vert_path, const std::string &frag_path) {
     std::vector<char> vert_shader{};
     std::vector<char> frag_shader{};
 
@@ -151,15 +146,14 @@ bool Pipeline::create_graphics(const std::string &vert_path, const std::string &
 
     VkGraphicsPipelineCreateInfo pipeline_info{};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipeline_info.stageCount = 2;
-    pipeline_info.pStages = shader_stages;
 
     // programmable functions
     pipeline_info.pVertexInputState = &vert_input_state;
+    pipeline_info.stageCount = 2;
+    pipeline_info.pStages = shader_stages;
 
     // fixed functions states
     pipeline_info.pDynamicState = &dynamic_state;
-
     pipeline_info.pViewportState = &viewport_state;
 
     pipeline_info.pInputAssemblyState = &in_assembly_state;
@@ -172,7 +166,7 @@ bool Pipeline::create_graphics(const std::string &vert_path, const std::string &
 
     pipeline_info.layout = _layout;
 
-    pipeline_info.renderPass = _render_pass;
+    pipeline_info.renderPass = render_pass;
     pipeline_info.subpass = 0;
 
 
@@ -198,49 +192,6 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
     create_info.pCode = reinterpret_cast<const uint32_t*>(shader_code_ptr->data());
 
     return vkCreateShaderModule(_logical_device, &create_info, nullptr, module_ptr) == VK_SUCCESS;
-}
-
-bool Pipeline::create_render_pass() {
-    // define color attachment for swapchain rendering
-    VkAttachmentDescription color_attach{};
-
-    color_attach.format  = _swap_chain_ptr->get_img_format();
-    color_attach.samples = VK_SAMPLE_COUNT_1_BIT;
-
-    color_attach.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR; // before rendering
-    color_attach.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // after rendering
-
-    color_attach.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    color_attach.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-
-    // before render pass
-    color_attach.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    // after render pass
-    color_attach.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // images need to be transitioned into specific layouts
-
-
-    VkAttachmentReference color_attach_ref{};
-
-    color_attach_ref.attachment = 0; // index in the attachment description array
-    color_attach_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    // create basic triangle subpass
-    VkSubpassDescription sub_pass{};
-
-    sub_pass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    sub_pass.colorAttachmentCount = 1;
-    sub_pass.pColorAttachments = &color_attach_ref; // direct reference of layout(location = 0) out vec4 outColor fragment shader!
-
-    VkRenderPassCreateInfo render_pass_info{};
-
-    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_info.subpassCount = 1;
-    render_pass_info.pSubpasses = &sub_pass;
-
-    render_pass_info.attachmentCount = 1;
-    render_pass_info.pAttachments = &color_attach;
-
-    return vkCreateRenderPass(_logical_device, &render_pass_info, nullptr, &_render_pass) == VK_SUCCESS;
 }
 
 } // namespace fl

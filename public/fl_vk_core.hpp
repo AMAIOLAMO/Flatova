@@ -60,7 +60,6 @@ private:
 
     VkSurfaceKHR _surface;
     Swapchain _swap_chain;
-    /*VkSwapchainKHR _swap_chain;*/
 
     VkFormat _chosen_img_format;
     VkExtent2D _chosen_extent;
