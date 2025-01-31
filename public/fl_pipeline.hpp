@@ -3,6 +3,7 @@
 #define _FL_PIPELINE_H
 
 #include <vulkan/vulkan_core.h>
+#include <fl_swapchain.hpp>
 
 #include <string>
 #include <vector>
@@ -25,7 +26,7 @@ public:
     Pipeline(Pipeline&) = delete;
     Pipeline& operator=(Pipeline&) = delete;
 
-    bool init(VkDevice logical, VkExtent2D extent);
+    bool init(VkDevice logical, Swapchain *swap_chain_ptr);
 
 private:
     // creates a graphics pipeline
@@ -40,6 +41,8 @@ private:
 
     const std::string _vert_path;
     const std::string _frag_path;
+
+    Swapchain *_swap_chain_ptr = nullptr;
 
     // layout of the uniformed values passed into the vertex and fragment shaders
     VkPipelineLayout _layout;

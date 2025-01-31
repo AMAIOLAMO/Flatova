@@ -1,5 +1,6 @@
 #include <fl_pipeline.hpp>
 #include <fl_shader_utils.hpp>
+#include <fl_swapchain.hpp>
 
 #include <stdio.h>
 
@@ -13,8 +14,9 @@ Pipeline::~Pipeline() {
     vkDestroyPipelineLayout(_logical_device, _layout, nullptr);
 }
 
-bool Pipeline::init(VkDevice logical, VkExtent2D extent) {
+bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
     _logical_device = logical;
+    _swap_chain_ptr = swap_chain_ptr;
 
     VkPipelineLayoutCreateInfo layout_create_info{};
     layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -33,6 +35,8 @@ bool Pipeline::init(VkDevice logical, VkExtent2D extent) {
         fprintf(stderr, "[Pipeline] failed create graphics pipeline\n");
         return false;
     }
+
+    VkExtent2D extent = _swap_chain_ptr->get_img_extent();
 
     _viewport.x = 0.0f;
     _viewport.y = 0.0f;
@@ -159,6 +163,13 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
 
 bool Pipeline::create_render_pass() {
     VkAttachmentDescription color_attachment{};
+
+    color_attachment.format = _swap_chain_ptr->get_img_format();
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkExtent2D ext = _swap_chain_ptr->get_img_extent();
+
+    printf("[Pipeline] creating render pass with img extent: <%d, %d>\n", ext.width, ext.height);
 
     return false;
 }

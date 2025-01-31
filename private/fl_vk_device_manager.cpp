@@ -33,22 +33,4 @@ const VkDevice VkDeviceManager::get_logical() {
     return _logical;
 }
 
-/*bool VkDeviceManager::create_swap_chain(const VkSwapchainCreateInfoKHR *create_info_ptr,*/
-/*                       const VkAllocationCallbacks *alloc_callback, Swapchain *swap_chain_ptr) {*/
-/*    return vkCreateSwapchainKHR(_logical, create_info_ptr, alloc_callback, swap_chain_ptr) == VK_SUCCESS;*/
-/*}*/
-
-uint32_t VkDeviceManager::get_swap_chain_images(Swapchain *swap_chain_ptr, std::vector<VkImage> *imgs_ptr) {
-    VkSwapchainKHR raw_handle = swap_chain_ptr->get_raw_handle();
-
-    uint32_t image_count = 0;
-    vkGetSwapchainImagesKHR(_logical, raw_handle, &image_count, nullptr);
-
-    imgs_ptr->resize(image_count);
-    vkGetSwapchainImagesKHR(_logical, raw_handle, &image_count, imgs_ptr->data());
-
-    return image_count;
-}
-
-
 } // namespace fl

@@ -102,6 +102,10 @@ VkDeviceManager* VkCore::get_device_manager_ptr() {
     return _device_manager_ptr;
 }
 
+Swapchain* VkCore::get_swap_chain_ptr() {
+    return &_swap_chain;
+}
+
 VkExtent2D VkCore::get_swap_chain_extent() const {
     return _chosen_extent;
 }
@@ -408,9 +412,10 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
     // else
     
     VkSurfaceCapabilitiesKHR &capabilities = support_info.capabilities;
+
     VkSurfaceFormatKHR surface_format = get_best_swap_surface_format(&support_info.formats);
-    VkPresentModeKHR present_mode = get_best_swap_present_mode(&support_info.present_modes);
-    VkExtent2D extent = get_glfw_best_swap_extent(window_ptr, &support_info.capabilities);
+    VkPresentModeKHR   present_mode   = get_best_swap_present_mode(&support_info.present_modes);
+    VkExtent2D         extent         = get_glfw_best_swap_extent(window_ptr, &support_info.capabilities);
 
     _chosen_img_format = surface_format.format;
     _chosen_extent = extent;
@@ -454,13 +459,13 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
     // when window resize create new swap chain(not supported yet)
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
+
     return _swap_chain.init(_device_manager_ptr->get_logical(), &create_info, nullptr);
-    /*return _device_manager_ptr->create_swap_chain(&create_info, nullptr, &_swap_chain);*/
 }
 
-uint32_t VkCore::get_swap_chain_images(std::vector<VkImage> *imgs_ptr) {
-    return _device_manager_ptr->get_swap_chain_images(&_swap_chain, imgs_ptr);
-}
+/*uint32_t VkCore::get_swap_chain_images(std::vector<VkImage> *imgs_ptr) {*/
+/*    return _device_manager_ptr->get_swap_chain_images(&_swap_chain, imgs_ptr);*/
+/*}*/
 
 VkFormat VkCore::get_chosen_img_format() const {
     return _chosen_img_format;

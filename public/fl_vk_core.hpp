@@ -30,8 +30,8 @@ public:
 
     bool init(std::string app_name, GLFWwindow *window_ptr);
 
-    uint32_t get_swap_chain_images(std::vector<VkImage> *imgs_ptr);
     VkDeviceManager* get_device_manager_ptr();
+    Swapchain* get_swap_chain_ptr();
 
     VkFormat get_chosen_img_format() const;
     VkExtent2D get_swap_chain_extent() const;

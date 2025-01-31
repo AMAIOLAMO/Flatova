@@ -23,8 +23,8 @@ void Application::init() {
     init_glfw_window();
 
     _vk_core.init(_name, _win_ptr);
-
-    _vk_core.get_swap_chain_images(&_swap_chain_imgs);
+    
+    _vk_core.get_swap_chain_ptr()->get_images(&_swap_chain_imgs);
     
     app_info("got %zu amount of swap chain images!", _swap_chain_imgs.size());
 
@@ -34,9 +34,8 @@ void Application::init() {
         app_err("Failed setup swap chain image views!");
 
     VkDevice logical_device = _vk_core.get_device_manager_ptr()->get_logical();
-    VkExtent2D swap_chain_extent = _vk_core.get_swap_chain_extent();
     
-    if(_pipeline.init(logical_device, swap_chain_extent))
+    if(_pipeline.init(logical_device, _vk_core.get_swap_chain_ptr()))
         app_info("Pipeline initialization complete");
     else
         app_err("Pipeline initialization failed");
