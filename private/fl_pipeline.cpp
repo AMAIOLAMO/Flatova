@@ -13,6 +13,7 @@ Pipeline::Pipeline(const std::string &vert_path, const std::string &frag_path)
 Pipeline::~Pipeline() {
     vkDestroyPipelineLayout(_logical_device, _layout, nullptr);
     vkDestroyRenderPass(_logical_device, _render_pass, nullptr);
+    vkDestroyPipeline(_logical_device, _graphics, nullptr);
 }
 
 bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
@@ -77,10 +78,10 @@ bool Pipeline::create_graphics(const std::string &vert_path, const std::string &
 
     
     // PROGRAMMABLE FUNCTION STAGES
-    VkPipelineVertexInputStateCreateInfo vert_input_info{};
-    vert_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vert_input_info.vertexBindingDescriptionCount = 0; // dont pass any info into vertex yet
-    vert_input_info.vertexAttributeDescriptionCount = 0;
+    VkPipelineVertexInputStateCreateInfo vert_input_state{};
+    vert_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vert_input_state.vertexBindingDescriptionCount = 0; // dont pass any info into vertex yet
+    vert_input_state.vertexAttributeDescriptionCount = 0;
 
     VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
     vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -144,12 +145,49 @@ bool Pipeline::create_graphics(const std::string &vert_path, const std::string &
     color_blend_state.attachmentCount = 1;
     color_blend_state.pAttachments = &color_blend_attachment;
 
+    VkPipelineShaderStageCreateInfo shader_stages[] = {
+        vert_shader_stage_info, frag_shader_stage_info
+    };
+
+    VkGraphicsPipelineCreateInfo pipeline_info{};
+    pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipeline_info.stageCount = 2;
+    pipeline_info.pStages = shader_stages;
+
+    // programmable functions
+    pipeline_info.pVertexInputState = &vert_input_state;
+
+    // fixed functions states
+    pipeline_info.pDynamicState = &dynamic_state;
+
+    pipeline_info.pViewportState = &viewport_state;
+
+    pipeline_info.pInputAssemblyState = &in_assembly_state;
+
+    pipeline_info.pDepthStencilState = nullptr;
+    pipeline_info.pRasterizationState = &raster_state;
+    pipeline_info.pMultisampleState = &multisample_state;
+
+    pipeline_info.pColorBlendState = &color_blend_state;
+
+    pipeline_info.layout = _layout;
+
+    pipeline_info.renderPass = _render_pass;
+    pipeline_info.subpass = 0;
 
 
+    pipeline_info.basePipelineHandle = nullptr;
+    pipeline_info.basePipelineIndex = -1;
+
+    if(vkCreateGraphicsPipelines(_logical_device, VK_NULL_HANDLE,
+                                 1, &pipeline_info, nullptr, &_graphics) != VK_SUCCESS) {
+        vkDestroyShaderModule(_logical_device, vert_module, nullptr);
+        vkDestroyShaderModule(_logical_device, frag_module, nullptr);
+        return false;
+    }
 
     vkDestroyShaderModule(_logical_device, vert_module, nullptr);
     vkDestroyShaderModule(_logical_device, frag_module, nullptr);
-
     return true;
 }
 

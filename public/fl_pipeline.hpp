@@ -42,11 +42,14 @@ private:
     const std::string _vert_path;
     const std::string _frag_path;
 
+
     Swapchain *_swap_chain_ptr = nullptr;
 
-    VkRenderPass _render_pass;
+    VkRenderPass _render_pass = VK_NULL_HANDLE;
     // layout of the uniformed values passed into the vertex and fragment shaders
-    VkPipelineLayout _layout;
+    VkPipelineLayout _layout = VK_NULL_HANDLE;
+
+    VkPipeline _graphics = VK_NULL_HANDLE;
 
     VkViewport _viewport;
     VkRect2D   _scissor;
