@@ -12,6 +12,7 @@ Pipeline::Pipeline(const std::string &vert_path, const std::string &frag_path)
 
 Pipeline::~Pipeline() {
     vkDestroyPipelineLayout(_logical_device, _layout, nullptr);
+    vkDestroyRenderPass(_logical_device, _render_pass, nullptr);
 }
 
 bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr) {
@@ -162,16 +163,46 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
 }
 
 bool Pipeline::create_render_pass() {
-    VkAttachmentDescription color_attachment{};
+    // define color attachment for swapchain rendering
+    VkAttachmentDescription color_attach{};
 
-    color_attachment.format = _swap_chain_ptr->get_img_format();
-    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attach.format  = _swap_chain_ptr->get_img_format();
+    color_attach.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    VkExtent2D ext = _swap_chain_ptr->get_img_extent();
+    color_attach.loadOp  = VK_ATTACHMENT_LOAD_OP_CLEAR; // before rendering
+    color_attach.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // after rendering
 
-    printf("[Pipeline] creating render pass with img extent: <%d, %d>\n", ext.width, ext.height);
+    color_attach.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attach.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-    return false;
+    // before render pass
+    color_attach.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // after render pass
+    color_attach.finalLayout   = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // images need to be transitioned into specific layouts
+
+
+    VkAttachmentReference color_attach_ref{};
+
+    color_attach_ref.attachment = 0; // index in the attachment description array
+    color_attach_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    // create basic triangle subpass
+    VkSubpassDescription sub_pass{};
+
+    sub_pass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    sub_pass.colorAttachmentCount = 1;
+    sub_pass.pColorAttachments = &color_attach_ref; // direct reference of layout(location = 0) out vec4 outColor fragment shader!
+
+    VkRenderPassCreateInfo render_pass_info{};
+
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &sub_pass;
+
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &color_attach;
+
+    return vkCreateRenderPass(_logical_device, &render_pass_info, nullptr, &_render_pass) == VK_SUCCESS;
 }
 
 } // namespace fl

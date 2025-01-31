@@ -44,6 +44,7 @@ private:
 
     Swapchain *_swap_chain_ptr = nullptr;
 
+    VkRenderPass _render_pass;
     // layout of the uniformed values passed into the vertex and fragment shaders
     VkPipelineLayout _layout;
 
