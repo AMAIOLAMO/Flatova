@@ -33,7 +33,10 @@ private:
 
     bool setup_swap_chain_views();
 
-    bool create_render_pass(Swapchain *swap_chain_ptr, VkDevice device);
+    bool setup_render_pass(Swapchain *swap_chain_ptr, VkDevice device);
+
+    bool setup_command_pool();
+    bool setup_command_buffer();
 
     VkRenderPass _render_pass = VK_NULL_HANDLE;
 
@@ -41,6 +44,8 @@ private:
     std::vector<VkImage>       _swpchn_imgs{};
     std::vector<VkFramebuffer> _swpchn_frame_buffers{};
 
+    VkCommandPool _cmd_pool = VK_NULL_HANDLE;
+    VkCommandBuffer _cmd_buffer = VK_NULL_HANDLE;
 
     #ifdef NDEBUG
         const bool _enable_validation_layers = false;

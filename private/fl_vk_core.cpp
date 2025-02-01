@@ -106,8 +106,12 @@ Swapchain* VkCore::get_swap_chain_ptr() {
     return &_swap_chain;
 }
 
+
 VkExtent2D VkCore::get_swap_chain_extent() const {
     return _chosen_extent;
+}
+const QueueFamilyIdxs* VkCore::get_queue_family_idxs_ptr() const {
+    return &_queue_family_idxs;
 }
 
 void log_glfw_required_extensions_support() {
