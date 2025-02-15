@@ -28,6 +28,11 @@ public:
 
     bool init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass);
 
+    VkPipeline get_raw_graphics_handle() const;
+    
+    VkViewport& get_viewport_ref();
+    VkRect2D& get_scissor_ref();
+
 private:
     // creates a graphics pipeline
     bool create_graphics(VkRenderPass render_pass,

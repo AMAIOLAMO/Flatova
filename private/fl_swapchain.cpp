@@ -2,7 +2,7 @@
 
 namespace fl {
 
-VkSwapchainKHR Swapchain::get_raw_handle() {
+VkSwapchainKHR& Swapchain::get_raw_handle_ref() {
     return _handle;
 }
 

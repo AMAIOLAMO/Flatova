@@ -37,6 +37,9 @@ public:
     VkExtent2D get_swap_chain_extent() const;
     const QueueFamilyIdxs* get_queue_family_idxs_ptr() const;
 
+    VkQueue& get_graphics_queue_ref();
+    VkQueue& get_present_queue_ref();
+
 private:
     bool setup_instance(std::string app_name);
 

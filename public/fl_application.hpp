@@ -38,6 +38,16 @@ private:
     bool setup_command_pool();
     bool setup_command_buffer();
 
+    bool record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_idx);
+
+    bool setup_synchronize_objs();
+
+    bool draw_frame();
+
+    VkSemaphore _img_avail_sema;
+    VkSemaphore _render_fin_sema;
+    VkFence _rendering_fence;
+
     VkRenderPass _render_pass = VK_NULL_HANDLE;
 
     std::vector<VkImageView>   _swpchn_views{};

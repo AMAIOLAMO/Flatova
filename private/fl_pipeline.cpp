@@ -194,4 +194,15 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
     return vkCreateShaderModule(_logical_device, &create_info, nullptr, module_ptr) == VK_SUCCESS;
 }
 
+VkPipeline Pipeline::get_raw_graphics_handle() const {
+    return _graphics;
+}
+
+VkViewport& Pipeline::get_viewport_ref() {
+    return _viewport;
+}
+VkRect2D& Pipeline::get_scissor_ref() {
+    return _scissor;
+}
+
 } // namespace fl

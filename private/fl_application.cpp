@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan_core.h>
 
 namespace fl {
 
@@ -29,6 +30,10 @@ Application::Application(int width, int height, const std::string &name)
 Application::~Application() {
     VkDeviceManager *device_manager_ptr = _vk_core.get_device_manager_ptr();
     VkDevice logical = device_manager_ptr->get_logical();
+
+    vkDestroySemaphore(logical, _img_avail_sema, nullptr);
+    vkDestroySemaphore(logical, _render_fin_sema, nullptr);
+    vkDestroyFence(logical, _rendering_fence, nullptr);
 
     for(size_t i = 0; i < _swpchn_imgs.size(); i++) {
         VkImageView img_view = _swpchn_views[i];
@@ -101,6 +106,11 @@ void Application::init() {
         app_info("Create command buffer success!");
     else
         app_err("create command buffer failed!");
+
+    if(setup_synchronize_objs())
+        app_info("setup sync obj success!");
+    else
+        app_err("setup sync obj failed!");
 }
 
 int Application::init_glfw_window() {
@@ -121,6 +131,8 @@ int Application::run() {
         glfwSwapBuffers(_win_ptr);
 
         glfwPollEvents();
+
+        draw_frame();
     }
     
     return EXIT_SUCCESS;
@@ -188,6 +200,16 @@ bool Application::setup_render_pass(Swapchain *swap_chain_ptr, VkDevice device) 
     sub_pass.colorAttachmentCount = 1;
     sub_pass.pColorAttachments = &color_attach_ref; // direct reference of layout(location = 0) out vec4 outColor fragment shader!
 
+    VkSubpassDependency dep{};
+    dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dep.dstSubpass = 0;
+
+    dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dep.srcAccessMask = 0;
+
+    dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 
     VkRenderPassCreateInfo render_pass_info{};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -196,6 +218,9 @@ bool Application::setup_render_pass(Swapchain *swap_chain_ptr, VkDevice device) 
 
     render_pass_info.attachmentCount = 1;
     render_pass_info.pAttachments = &color_attach;
+
+    render_pass_info.dependencyCount = 1;
+    render_pass_info.pDependencies = &dep;
 
     return vkCreateRenderPass(device, &render_pass_info, nullptr, &_render_pass) == VK_SUCCESS;
 }
@@ -226,6 +251,114 @@ bool Application::setup_command_buffer() {
     return vkAllocateCommandBuffers(logical_device, &alloc_info, &_cmd_buffer) == VK_SUCCESS;
 }
 
+bool Application::record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_idx) {
+    VkCommandBufferBeginInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    info.flags = 0;
+    info.pInheritanceInfo = nullptr;
+
+    if(vkBeginCommandBuffer(cmd_buf, &info) != VK_SUCCESS)
+        return false;
+        
+    VkRenderPassBeginInfo render_info{};
+    render_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_info.renderPass  = _render_pass;
+    render_info.framebuffer = _swpchn_frame_buffers[img_idx];
+    render_info.renderArea.offset = {0, 0};
+    render_info.renderArea.extent = _vk_core.get_swap_chain_extent();
+
+    VkClearValue clear_color = {{{.0f, .0f, .0f, 1.f}}};
+    render_info.clearValueCount = 1;
+    render_info.pClearValues = &clear_color;
+    
+    vkCmdBeginRenderPass(cmd_buf, &render_info, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.get_raw_graphics_handle());
+
+    vkCmdSetViewport(cmd_buf, 0, 1, &_pipeline.get_viewport_ref());
+    vkCmdSetScissor(cmd_buf, 0, 1, &_pipeline.get_scissor_ref());
+
+    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(cmd_buf);
+    
+    return vkEndCommandBuffer(cmd_buf) == VK_SUCCESS;
+}
+
+bool Application::setup_synchronize_objs() {
+    VkSemaphoreCreateInfo sem_info{};
+    sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fence_info{};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT; // create starting signaled, so first frame will not wait
+
+    VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
+
+    if(vkCreateSemaphore(logical, &sem_info, nullptr, &_img_avail_sema) != VK_SUCCESS)
+        return false;
+
+    if(vkCreateSemaphore(logical, &sem_info, nullptr, &_render_fin_sema) != VK_SUCCESS)
+        return false;
+
+    if(vkCreateFence(logical, &fence_info, nullptr, &_rendering_fence) != VK_SUCCESS)
+        return false;
+
+    return true;
+}
+
+bool Application::draw_frame() {
+    VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
+    VkSwapchainKHR &raw_swpchn = _vk_core.get_swap_chain_ptr()->get_raw_handle_ref();
+
+    // wait for previous frame
+    vkWaitForFences(logical, 1, &_rendering_fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(logical, 1, &_rendering_fence);
+    
+    // draw on the commands
+    uint32_t img_idx;
+    vkAcquireNextImageKHR(logical, raw_swpchn, UINT64_MAX, _img_avail_sema, VK_NULL_HANDLE, &img_idx);
+    vkResetCommandBuffer(_cmd_buffer, 0);
+    record_command_buffer(_cmd_buffer, img_idx);
+
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &_cmd_buffer;
+
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = &_img_avail_sema;
+
+    VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // wait until color has output
+    submit_info.pWaitDstStageMask = &wait_stage;
+
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = &_render_fin_sema;
+
+    VkQueue &graphics_queue = _vk_core.get_graphics_queue_ref();
+    
+    if(vkQueueSubmit(graphics_queue, 1, &submit_info, _rendering_fence) != VK_SUCCESS)
+        return false;
+    // else
+
+    // submitted, now we need to present, but wait render finished
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = &_render_fin_sema;
+
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &raw_swpchn;
+    present_info.pImageIndices = &img_idx;
+    present_info.pResults = nullptr;
+
+    VkQueue &present_queue = _vk_core.get_present_queue_ref();
+
+    if(vkQueuePresentKHR(present_queue, &present_info) != VK_SUCCESS)
+        return false;
+
+    return true;
+}
 
 } // namespace fl
 

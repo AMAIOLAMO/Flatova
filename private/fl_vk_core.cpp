@@ -32,7 +32,7 @@ VkCore::~VkCore() {
     }
 
     // TODO: HACK: the swap chain should handle this itself
-    vkDestroySwapchainKHR(_logical_device, _swap_chain.get_raw_handle(), nullptr);
+    vkDestroySwapchainKHR(_logical_device, _swap_chain.get_raw_handle_ref(), nullptr);
     _instance.destroy_surface(_surface, nullptr);
     vkDestroyDevice(_logical_device, nullptr);
 
@@ -469,6 +469,13 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
 
 VkFormat VkCore::get_chosen_img_format() const {
     return _chosen_img_format;
+}
+
+VkQueue& VkCore::get_graphics_queue_ref() {
+    return _graphics_queue;
+}
+VkQueue& VkCore::get_present_queue_ref() {
+    return _present_queue;
 }
 
 }; // namespace fl

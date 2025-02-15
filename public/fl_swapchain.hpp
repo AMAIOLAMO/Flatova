@@ -11,7 +11,7 @@ namespace fl {
 
 class Swapchain {
 public:
-    VkSwapchainKHR get_raw_handle();
+    VkSwapchainKHR& get_raw_handle_ref();
     
     bool init(VkDevice device, VkSwapchainCreateInfoKHR *create_info_ptr,
               const VkAllocationCallbacks *alloc_callback);
