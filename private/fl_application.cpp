@@ -134,6 +134,15 @@ int Application::run() {
 
         draw_frame();
     }
+
+    VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
+
+    VkQueue &graphics_queue = _vk_core.get_graphics_queue_ref();
+    VkQueue &present_queue = _vk_core.get_present_queue_ref();
+
+    vkQueueWaitIdle(graphics_queue);
+    vkQueueWaitIdle(present_queue);
+    vkDeviceWaitIdle(logical);
     
     return EXIT_SUCCESS;
 }
