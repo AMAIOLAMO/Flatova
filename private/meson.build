@@ -1,6 +1,6 @@
 srcs += files(
+  # cpp implementation files
   'fl_application.cpp',
-  'fl_logger.cpp',
 
   'fl_vk_core.cpp',
   'fl_vk_instance.cpp',
@@ -9,5 +9,5 @@ srcs += files(
   'fl_pipeline.cpp',
 
   'fl_shader_utils.cpp',
-  'fl_vulkan_utils.cpp',
+  'fl_vulkan_utils.cpp'
 )

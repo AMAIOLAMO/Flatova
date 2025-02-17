@@ -1,12 +1,13 @@
 #include <fl_application.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <cstring>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan_core.h>
 
 namespace fl {
 
-#define app_info(...) do { printf("[Application] \033[0;37mINFO: " __VA_ARGS__); printf("\033[0m\n"); } while(0)
 #define app_err(...) do { fprintf(stderr, "[Application] \033[0;31mERROR: " __VA_ARGS__); fprintf(stderr, "\033[0m\n"); } while(0)
 
 #define action_check(FUNC, MSG) do { \
@@ -24,7 +25,7 @@ Application::Application(int width, int height, const std::string &name)
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    app_info("glfw initialized");
+    spdlog::info("glfw initialized");
 }
 
 Application::~Application() {
@@ -48,7 +49,7 @@ Application::~Application() {
     glfwDestroyWindow(_win_ptr);
     glfwTerminate();
 
-    app_info("Clean up");
+    spdlog::info("Clean up");
 }
 
 void Application::init() {
@@ -57,10 +58,10 @@ void Application::init() {
     _vk_core.init(_name, _win_ptr);
     _vk_core.get_swap_chain_ptr()->get_images(&_swpchn_imgs);
     
-    app_info("got %zu amount of swap chain images!", _swpchn_imgs.size());
+    spdlog::info("got %zu amount of swap chain images!", _swpchn_imgs.size());
 
     if(setup_swap_chain_views())
-        app_info("setup swap chain image views success!");
+        spdlog::info("setup swap chain image views success!");
     else
         app_err("Failed setup swap chain image views!");
 
@@ -68,13 +69,13 @@ void Application::init() {
     VkDevice logical_device = _vk_core.get_device_manager_ptr()->get_logical();
 
     if(setup_render_pass(swpchn_ptr, logical_device))
-        app_info("Create render pass success!");
+        spdlog::info("Create render pass success!");
     else
         app_err("create render pass failed!");
 
     
     if(_pipeline.init(logical_device, swpchn_ptr, _render_pass))
-        app_info("Pipeline initialization complete");
+        spdlog::info("Pipeline initialization complete");
     else
         app_err("Pipeline initialization failed");
 
@@ -98,17 +99,17 @@ void Application::init() {
     }
 
     if(setup_command_pool())
-        app_info("Create command pool success!");
+        spdlog::info("Create command pool success!");
     else
         app_err("create command pool failed!");
 
     if(setup_command_buffer())
-        app_info("Create command buffer success!");
+        spdlog::info("Create command buffer success!");
     else
         app_err("create command buffer failed!");
 
     if(setup_synchronize_objs())
-        app_info("setup sync obj success!");
+        spdlog::info("setup sync obj success!");
     else
         app_err("setup sync obj failed!");
 }
@@ -287,7 +288,8 @@ bool Application::record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_id
     vkCmdSetViewport(cmd_buf, 0, 1, &_pipeline.get_viewport_ref());
     vkCmdSetScissor(cmd_buf, 0, 1, &_pipeline.get_scissor_ref());
 
-    vkCmdDraw(cmd_buf, 3, 1, 0, 0);
+    #define VERTEX_INPUT_COUNT 6
+    vkCmdDraw(cmd_buf, VERTEX_INPUT_COUNT, 1, 0, 0);
 
     vkCmdEndRenderPass(cmd_buf);
     

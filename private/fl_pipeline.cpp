@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+#include <spdlog/spdlog.h>
+
 namespace fl {
 
 Pipeline::Pipeline(const std::string &vert_path, const std::string &frag_path)
@@ -58,8 +60,8 @@ bool Pipeline::create_graphics(VkRenderPass render_pass,
     if(read_compiled_shader(frag_path, &frag_shader) == false)
         return false;
 
-    printf("[Pipeline] Vertex Shader Code Size: %zu\n", vert_shader.size());
-    printf("[Pipeline] Fragment Shader Code Size: %zu\n", frag_shader.size());
+    spdlog::info("[Pipeline] Vertex Shader Code Size: {0}", vert_shader.size());
+    spdlog::info("[Pipeline] Fragment Shader Code Size: {0}", frag_shader.size());
 
     VkShaderModule vert_module = VK_NULL_HANDLE;
     if(create_shader_module(&vert_shader, &vert_module) == false)
