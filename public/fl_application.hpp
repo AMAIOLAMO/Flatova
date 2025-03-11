@@ -13,6 +13,8 @@ struct GLFWwindow;
 
 namespace fl {
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 /// Application is an abstraction layer that handles the major loop and handles
 /// both initializaztion and generation of the window, it is essentially the entire engine entry
 class Application {
@@ -36,7 +38,7 @@ private:
     bool setup_render_pass(Swapchain *swap_chain_ptr, VkDevice device);
 
     bool setup_command_pool();
-    bool setup_command_buffer();
+    bool setup_command_buffers();
 
     bool record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_idx);
 
@@ -44,9 +46,9 @@ private:
 
     bool draw_frame();
 
-    VkSemaphore _img_avail_sema;
-    VkSemaphore _render_fin_sema;
-    VkFence _rendering_fence;
+    std::vector<VkSemaphore> _img_avail_semas;
+    std::vector<VkSemaphore> _render_fin_semas;
+    std::vector<VkFence>     _rendering_fences;
 
     VkRenderPass _render_pass = VK_NULL_HANDLE;
 
@@ -55,7 +57,9 @@ private:
     std::vector<VkFramebuffer> _swpchn_frame_buffers{};
 
     VkCommandPool _cmd_pool = VK_NULL_HANDLE;
-    VkCommandBuffer _cmd_buffer = VK_NULL_HANDLE;
+    std::vector<VkCommandBuffer> _cmd_buffers;
+
+    size_t _current_frame = 0;
 
     #ifdef NDEBUG
         const bool _enable_validation_layers = false;

@@ -32,9 +32,11 @@ Application::~Application() {
     VkDeviceManager *device_manager_ptr = _vk_core.get_device_manager_ptr();
     VkDevice logical = device_manager_ptr->get_logical();
 
-    vkDestroySemaphore(logical, _img_avail_sema, nullptr);
-    vkDestroySemaphore(logical, _render_fin_sema, nullptr);
-    vkDestroyFence(logical, _rendering_fence, nullptr);
+    for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        vkDestroySemaphore(logical, _img_avail_semas[i], nullptr);
+        vkDestroySemaphore(logical, _render_fin_semas[i], nullptr);
+        vkDestroyFence(logical, _rendering_fences[i], nullptr);
+    }
 
     for(size_t i = 0; i < _swpchn_imgs.size(); i++) {
         VkImageView img_view = _swpchn_views[i];
@@ -103,10 +105,10 @@ void Application::init() {
     else
         app_err("create command pool failed!");
 
-    if(setup_command_buffer())
-        spdlog::info("Create command buffer success!");
+    if(setup_command_buffers())
+        spdlog::info("Create command buffers success!");
     else
-        app_err("create command buffer failed!");
+        app_err("create command buffers failed!");
 
     if(setup_synchronize_objs())
         spdlog::info("setup sync obj success!");
@@ -248,7 +250,9 @@ bool Application::setup_command_pool() {
 }
 
 
-bool Application::setup_command_buffer() {
+bool Application::setup_command_buffers() {
+    _cmd_buffers.resize(MAX_FRAMES_IN_FLIGHT);
+
     VkCommandBufferAllocateInfo alloc_info{};
     VkDevice logical_device = _vk_core.get_device_manager_ptr()->get_logical();
 
@@ -257,8 +261,9 @@ bool Application::setup_command_buffer() {
     alloc_info.commandPool = _cmd_pool;
     alloc_info.commandBufferCount = 1;
     alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-    return vkAllocateCommandBuffers(logical_device, &alloc_info, &_cmd_buffer) == VK_SUCCESS;
+    return vkAllocateCommandBuffers(logical_device, &alloc_info, _cmd_buffers.data()) == VK_SUCCESS;
 }
 
 bool Application::record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_idx) {
@@ -297,6 +302,10 @@ bool Application::record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_id
 }
 
 bool Application::setup_synchronize_objs() {
+    _img_avail_semas.resize(MAX_FRAMES_IN_FLIGHT);
+    _render_fin_semas.resize(MAX_FRAMES_IN_FLIGHT);
+    _rendering_fences.resize(MAX_FRAMES_IN_FLIGHT);
+
     VkSemaphoreCreateInfo sem_info{};
     sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -306,14 +315,18 @@ bool Application::setup_synchronize_objs() {
 
     VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
 
-    if(vkCreateSemaphore(logical, &sem_info, nullptr, &_img_avail_sema) != VK_SUCCESS)
-        return false;
+    for(int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if(vkCreateSemaphore(logical, &sem_info, nullptr, &_img_avail_semas[i]) != VK_SUCCESS)
+            return false;
 
-    if(vkCreateSemaphore(logical, &sem_info, nullptr, &_render_fin_sema) != VK_SUCCESS)
-        return false;
+        if(vkCreateSemaphore(logical, &sem_info, nullptr, &_render_fin_semas[i]) != VK_SUCCESS)
+            return false;
 
-    if(vkCreateFence(logical, &fence_info, nullptr, &_rendering_fence) != VK_SUCCESS)
-        return false;
+
+        if(vkCreateFence(logical, &fence_info, nullptr, &_rendering_fences[i]) != VK_SUCCESS)
+            return false;
+    }
+
 
     return true;
 }
@@ -323,32 +336,32 @@ bool Application::draw_frame() {
     VkSwapchainKHR &raw_swpchn = _vk_core.get_swap_chain_ptr()->get_raw_handle_ref();
 
     // wait for previous frame
-    vkWaitForFences(logical, 1, &_rendering_fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(logical, 1, &_rendering_fence);
+    vkWaitForFences(logical, 1, &_rendering_fences[_current_frame], VK_TRUE, UINT64_MAX);
+    vkResetFences(logical, 1, &_rendering_fences[_current_frame]);
     
     // draw on the commands
     uint32_t img_idx;
-    vkAcquireNextImageKHR(logical, raw_swpchn, UINT64_MAX, _img_avail_sema, VK_NULL_HANDLE, &img_idx);
-    vkResetCommandBuffer(_cmd_buffer, 0);
-    record_command_buffer(_cmd_buffer, img_idx);
+    vkAcquireNextImageKHR(logical, raw_swpchn, UINT64_MAX, _img_avail_semas[_current_frame], VK_NULL_HANDLE, &img_idx);
+    vkResetCommandBuffer(_cmd_buffers[_current_frame], 0);
+    record_command_buffer(_cmd_buffers[_current_frame], img_idx);
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &_cmd_buffer;
+    submit_info.pCommandBuffers = &_cmd_buffers[_current_frame];
 
     submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = &_img_avail_sema;
+    submit_info.pWaitSemaphores = &_img_avail_semas[_current_frame];
 
     VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT; // wait until color has output
     submit_info.pWaitDstStageMask = &wait_stage;
 
     submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &_render_fin_sema;
+    submit_info.pSignalSemaphores = &_render_fin_semas[_current_frame];
 
     VkQueue &graphics_queue = _vk_core.get_graphics_queue_ref();
     
-    if(vkQueueSubmit(graphics_queue, 1, &submit_info, _rendering_fence) != VK_SUCCESS)
+    if(vkQueueSubmit(graphics_queue, 1, &submit_info, _rendering_fences[_current_frame]) != VK_SUCCESS)
         return false;
     // else
 
@@ -356,7 +369,7 @@ bool Application::draw_frame() {
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &_render_fin_sema;
+    present_info.pWaitSemaphores = &_render_fin_semas[_current_frame];
 
     present_info.swapchainCount = 1;
     present_info.pSwapchains = &raw_swpchn;
@@ -367,6 +380,8 @@ bool Application::draw_frame() {
 
     if(vkQueuePresentKHR(present_queue, &present_info) != VK_SUCCESS)
         return false;
+
+    _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     return true;
 }
