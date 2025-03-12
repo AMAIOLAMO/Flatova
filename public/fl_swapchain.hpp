@@ -18,6 +18,7 @@ public:
 
     VkFormat get_img_format() const;
     VkExtent2D get_img_extent() const;
+
     uint32_t get_images(std::vector<VkImage> *images_ptr);
 
 private:

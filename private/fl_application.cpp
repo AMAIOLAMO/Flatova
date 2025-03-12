@@ -8,22 +8,12 @@
 
 namespace fl {
 
-#define app_err(...) do { fprintf(stderr, "[Application] \033[0;31mERROR: " __VA_ARGS__); fprintf(stderr, "\033[0m\n"); } while(0)
-
-#define action_check(FUNC, MSG) do { \
-    if((FUNC) == false) { \
-        app_err("ACTION \"" MSG "\" FAILED"); \
-        return false; \
-    } \
-    app_info("ACTION \"" MSG "\" SUCCESS"); \
-} while(0)
-
 Application::Application(int width, int height, const std::string &name)
     : _width(width), _height(height), _name(name), _win_ptr(nullptr), _vk_core(_enable_validation_layers) {
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     spdlog::info("glfw initialized");
 }
@@ -38,13 +28,7 @@ Application::~Application() {
         vkDestroyFence(logical, _rendering_fences[i], nullptr);
     }
 
-    for(size_t i = 0; i < _swpchn_imgs.size(); i++) {
-        VkImageView img_view = _swpchn_views[i];
-        vkDestroyImageView(device_manager_ptr->get_logical(), img_view, nullptr);
-
-        VkFramebuffer frame_buffer = _swpchn_frame_buffers[i];
-        vkDestroyFramebuffer(device_manager_ptr->get_logical(), frame_buffer, nullptr);
-    }
+    destroy_views_and_frame_buffers();
 
     vkDestroyRenderPass(logical, _render_pass, nullptr);
     vkDestroyCommandPool(logical, _cmd_pool, nullptr);
@@ -65,7 +49,7 @@ void Application::init() {
     if(setup_swap_chain_views())
         spdlog::info("setup swap chain image views success!");
     else
-        app_err("Failed setup swap chain image views!");
+        spdlog::error("Failed setup swap chain image views!");
 
     Swapchain *swpchn_ptr = _vk_core.get_swap_chain_ptr();
     VkDevice logical_device = _vk_core.get_device_manager_ptr()->get_logical();
@@ -73,47 +57,36 @@ void Application::init() {
     if(setup_render_pass(swpchn_ptr, logical_device))
         spdlog::info("Create render pass success!");
     else
-        app_err("create render pass failed!");
+        spdlog::error("create render pass failed!");
 
     
     if(_pipeline.init(logical_device, swpchn_ptr, _render_pass))
         spdlog::info("Pipeline initialization complete");
     else
-        app_err("Pipeline initialization failed");
+        spdlog::error("Pipeline initialization failed");
 
     _swpchn_frame_buffers.resize(_swpchn_views.size());
 
-    for(size_t i = 0; i < _swpchn_views.size(); i++) {
-        VkFramebufferCreateInfo fb_create_info{};
-        fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        fb_create_info.renderPass = _render_pass;
-        fb_create_info.attachmentCount = 1;
-        fb_create_info.pAttachments = &_swpchn_views[i];
+    if(setup_swap_chain_frame_buffers())
+        spdlog::info("setup swap chain frame buffers success");
+    else
+        spdlog::error("Failed to setup swapchain frame buffers");
 
-        VkExtent2D extent = swpchn_ptr->get_img_extent();
-
-        fb_create_info.width = extent.width;
-        fb_create_info.height = extent.height;
-        fb_create_info.layers = 1; // single layered images
-
-        if(vkCreateFramebuffer(logical_device, &fb_create_info, nullptr, &_swpchn_frame_buffers[i]) != VK_SUCCESS)
-            app_err("creating frame buffer for frame view at index %zu failed!", i);
-    }
 
     if(setup_command_pool())
         spdlog::info("Create command pool success!");
     else
-        app_err("create command pool failed!");
+        spdlog::error("create command pool failed!");
 
     if(setup_command_buffers())
         spdlog::info("Create command buffers success!");
     else
-        app_err("create command buffers failed!");
+        spdlog::error("create command buffers failed!");
 
     if(setup_synchronize_objs())
         spdlog::info("setup sync obj success!");
     else
-        app_err("setup sync obj failed!");
+        spdlog::error("setup sync obj failed!");
 }
 
 int Application::init_glfw_window() {
@@ -179,6 +152,33 @@ bool Application::setup_swap_chain_views() {
         if(vkCreateImageView(logical_device, &create_info, nullptr, &_swpchn_views[i]) != VK_SUCCESS)
             return false;
     }
+
+    return true;
+}
+
+bool Application::setup_swap_chain_frame_buffers() {
+    Swapchain *swpchn_ptr = _vk_core.get_swap_chain_ptr();
+
+    VkDeviceManager *device_manager_ptr = _vk_core.get_device_manager_ptr();
+    VkDevice logical = device_manager_ptr->get_logical();
+
+    for(size_t i = 0; i < _swpchn_views.size(); i++) {
+        VkFramebufferCreateInfo fb_create_info{};
+        fb_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fb_create_info.renderPass = _render_pass;
+        fb_create_info.attachmentCount = 1;
+        fb_create_info.pAttachments = &_swpchn_views[i];
+
+        VkExtent2D extent = swpchn_ptr->get_img_extent();
+
+        fb_create_info.width = extent.width;
+        fb_create_info.height = extent.height;
+        fb_create_info.layers = 1; // single layered images
+
+        if(vkCreateFramebuffer(logical, &fb_create_info, nullptr, &_swpchn_frame_buffers[i]) != VK_SUCCESS)
+            spdlog::error("creating frame buffer for frame view at index %zu failed!", i);
+    }
+
 
     return true;
 }
@@ -337,11 +337,29 @@ bool Application::draw_frame() {
 
     // wait for previous frame
     vkWaitForFences(logical, 1, &_rendering_fences[_current_frame], VK_TRUE, UINT64_MAX);
-    vkResetFences(logical, 1, &_rendering_fences[_current_frame]);
     
     // draw on the commands
     uint32_t img_idx;
-    vkAcquireNextImageKHR(logical, raw_swpchn, UINT64_MAX, _img_avail_semas[_current_frame], VK_NULL_HANDLE, &img_idx);
+    VkResult acquire_result = vkAcquireNextImageKHR(logical, raw_swpchn, UINT64_MAX,
+                                            _img_avail_semas[_current_frame], VK_NULL_HANDLE, &img_idx);
+    
+    if(acquire_result == VK_ERROR_OUT_OF_DATE_KHR) {
+        spdlog::info("image out of date, recreating swap chain");
+
+        recreate_swap_chain_and_views();
+
+        return true;
+    }
+
+    if(acquire_result != VK_SUCCESS && acquire_result != VK_SUBOPTIMAL_KHR) {
+        spdlog::error("failed to acquire swap chain image!");
+        return false;
+    }
+
+    vkResetFences(logical, 1, &_rendering_fences[_current_frame]);
+    
+
+
     vkResetCommandBuffer(_cmd_buffers[_current_frame], 0);
     record_command_buffer(_cmd_buffers[_current_frame], img_idx);
 
@@ -378,13 +396,73 @@ bool Application::draw_frame() {
 
     VkQueue &present_queue = _vk_core.get_present_queue_ref();
 
-    if(vkQueuePresentKHR(present_queue, &present_info) != VK_SUCCESS)
+    VkResult present_result = vkQueuePresentKHR(present_queue, &present_info);
+
+    if(present_result == VK_ERROR_OUT_OF_DATE_KHR || present_result == VK_SUBOPTIMAL_KHR) {
+        spdlog::info("image out of date, recreating swap chain");
+
+        recreate_swap_chain_and_views();
+
+        return true;
+    }
+
+    if(present_result != VK_SUCCESS) {
+        spdlog::error("failed to acquire swap chain image!");
         return false;
+    }
 
     _current_frame = (_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 
     return true;
 }
+
+bool Application::recreate_swap_chain_and_views() {
+    VkDeviceManager *device_manager_ptr = _vk_core.get_device_manager_ptr();
+    VkDevice logical = device_manager_ptr->get_logical();
+
+    vkDeviceWaitIdle(logical);
+
+    if(_vk_core.recreate_swap_chain(_win_ptr))
+        spdlog::info("recreate swap chain success");
+    else {
+        spdlog::error("recreate swap chain failed");
+        return false;
+    }
+
+    destroy_views_and_frame_buffers();
+
+    _vk_core.get_swap_chain_ptr()->get_images(&_swpchn_imgs);
+
+    if(setup_swap_chain_views())
+        spdlog::info("recreate swap chain image views success!");
+    else {
+        spdlog::error("recreate swap chain image views failed!");
+        return false;
+    }
+
+    if(setup_swap_chain_frame_buffers())
+        spdlog::info("recreate swap chain frame buffers success!");
+    else {
+        spdlog::error("recreate swap chain frame buffers failed!");
+        return false;
+    }
+
+    return false;
+}
+
+void Application::destroy_views_and_frame_buffers() {
+    VkDeviceManager *device_manager_ptr = _vk_core.get_device_manager_ptr();
+    VkDevice logical = device_manager_ptr->get_logical();
+    
+    for(size_t i = 0; i < _swpchn_imgs.size(); i++) {
+        VkImageView img_view = _swpchn_views[i];
+        vkDestroyImageView(logical, img_view, nullptr);
+
+        VkFramebuffer frame_buffer = _swpchn_frame_buffers[i];
+        vkDestroyFramebuffer(logical, frame_buffer, nullptr);
+    }
+}
+
 
 } // namespace fl
 

@@ -33,7 +33,11 @@ public:
 private:
     int init_glfw_window();
 
+    bool recreate_swap_chain_and_views();
+
     bool setup_swap_chain_views();
+
+    bool setup_swap_chain_frame_buffers();
 
     bool setup_render_pass(Swapchain *swap_chain_ptr, VkDevice device);
 
@@ -45,6 +49,8 @@ private:
     bool setup_synchronize_objs();
 
     bool draw_frame();
+    
+    void destroy_views_and_frame_buffers();
 
     std::vector<VkSemaphore> _img_avail_semas;
     std::vector<VkSemaphore> _render_fin_semas;

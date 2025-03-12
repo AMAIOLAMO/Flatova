@@ -30,7 +30,7 @@ VkCore::~VkCore() {
     }
 
     // TODO: HACK: the swap chain should handle this itself
-    vkDestroySwapchainKHR(_logical_device, _swap_chain.get_raw_handle_ref(), nullptr);
+    destroy_swap_chain();
     _instance.destroy_surface(_surface, nullptr);
     vkDestroyDevice(_logical_device, nullptr);
 
@@ -461,8 +461,19 @@ bool VkCore::create_swap_chain(GLFWwindow *window_ptr) {
     // when window resize create new swap chain(not supported yet)
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
-
     return _swap_chain.init(_device_manager_ptr->get_logical(), &create_info, nullptr);
+}
+
+bool VkCore::recreate_swap_chain(GLFWwindow *window_ptr) {
+    vkDeviceWaitIdle(_logical_device);
+
+    destroy_swap_chain();
+
+    return create_swap_chain(window_ptr);
+}
+
+void VkCore::destroy_swap_chain() {
+    vkDestroySwapchainKHR(_logical_device, _swap_chain.get_raw_handle_ref(), nullptr);;
 }
 
 VkFormat VkCore::get_chosen_img_format() const {

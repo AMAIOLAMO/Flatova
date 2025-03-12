@@ -40,6 +40,8 @@ public:
     VkQueue& get_graphics_queue_ref();
     VkQueue& get_present_queue_ref();
 
+    bool recreate_swap_chain(GLFWwindow *window_ptr);
+
 private:
     bool setup_instance(std::string app_name);
 
@@ -60,6 +62,8 @@ private:
     bool create_swap_chain(GLFWwindow *window_ptr);
 
     void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT *info_ptr);
+
+    void destroy_swap_chain();
 
     Instance _instance;
 

@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+
 #include <spdlog/spdlog.h>
 
 namespace fl {
@@ -66,12 +67,13 @@ bool Pipeline::create_graphics(VkRenderPass render_pass,
     VkShaderModule vert_module = VK_NULL_HANDLE;
     if(create_shader_module(&vert_shader, &vert_module) == false)
         return false;
-    printf("[Pipeline] Vertex Shader Module created\n");
+    spdlog::info("[Pipeline] Vertex Shader Module created");
+
 
     VkShaderModule frag_module = VK_NULL_HANDLE;
     if(create_shader_module(&frag_shader, &frag_module) == false)
         return false;
-    printf("[Pipeline] Fragment Shader Module created\n");
+    spdlog::info("[Pipeline] Fragment Shader Module created");
 
     
     // PROGRAMMABLE FUNCTION STAGES
