@@ -198,6 +198,18 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
     return vkCreateShaderModule(_logical_device, &create_info, nullptr, module_ptr) == VK_SUCCESS;
 }
 
+void Pipeline::update_viewport_scissor_extents(VkExtent2D extent) {
+    _viewport.x = 0.0f;
+    _viewport.y = 0.0f;
+    _viewport.width = (float) extent.width;
+    _viewport.height = (float) extent.height;
+    _viewport.minDepth = 0.0f;
+    _viewport.maxDepth = 1.0f;
+
+    _scissor.extent = extent;
+    _scissor.offset = {0, 0};
+}
+
 VkPipeline Pipeline::get_raw_graphics_handle() const {
     return _graphics;
 }

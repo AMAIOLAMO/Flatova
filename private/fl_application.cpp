@@ -44,7 +44,7 @@ void Application::init() {
     _vk_core.init(_name, _win_ptr);
     _vk_core.get_swap_chain_ptr()->get_images(&_swpchn_imgs);
     
-    spdlog::info("got %zu amount of swap chain images!", _swpchn_imgs.size());
+    spdlog::info("got {} amount of swap chain images!", _swpchn_imgs.size());
 
     if(setup_swap_chain_views())
         spdlog::info("setup swap chain image views success!");
@@ -346,9 +346,11 @@ bool Application::draw_frame() {
     if(acquire_result == VK_ERROR_OUT_OF_DATE_KHR) {
         spdlog::info("image out of date, recreating swap chain");
 
-        recreate_swap_chain_and_views();
+        Swapchain *swapchain_ptr = _vk_core.get_swap_chain_ptr();
 
-        return true;
+        bool success = recreate_swap_chain_and_views();
+        _pipeline.update_viewport_scissor_extents(swapchain_ptr->get_img_extent());
+        return success;
     }
 
     if(acquire_result != VK_SUCCESS && acquire_result != VK_SUBOPTIMAL_KHR) {
@@ -401,9 +403,11 @@ bool Application::draw_frame() {
     if(present_result == VK_ERROR_OUT_OF_DATE_KHR || present_result == VK_SUBOPTIMAL_KHR) {
         spdlog::info("image out of date, recreating swap chain");
 
-        recreate_swap_chain_and_views();
+        Swapchain *swapchain_ptr = _vk_core.get_swap_chain_ptr();
 
-        return true;
+        bool success = recreate_swap_chain_and_views();
+        _pipeline.update_viewport_scissor_extents(swapchain_ptr->get_img_extent());
+        return success;
     }
 
     if(present_result != VK_SUCCESS) {

@@ -394,6 +394,7 @@ VkExtent2D get_glfw_best_swap_extent(GLFWwindow *window_ptr, const VkSurfaceCapa
 
     int width, height;
     glfwGetFramebufferSize(window_ptr, &width, &height);
+    spdlog::info("found best swap extent: <%d, %d>", width, height);
     
     VkExtent2D min_extent = capabilities_ptr->minImageExtent;
     VkExtent2D max_extent = capabilities_ptr->maxImageExtent;

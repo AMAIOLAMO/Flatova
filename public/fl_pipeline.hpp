@@ -34,6 +34,9 @@ public:
     VkViewport& get_viewport_ref();
     VkRect2D& get_scissor_ref();
 
+    // TODO: HACK! instead we should store the viewport and scissor by the application itself
+    void update_viewport_scissor_extents(VkExtent2D extent);
+
 private:
     // creates a graphics pipeline
     bool create_graphics(VkRenderPass render_pass,

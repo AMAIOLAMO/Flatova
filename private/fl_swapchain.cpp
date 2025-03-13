@@ -1,4 +1,5 @@
 #include <fl_swapchain.hpp>
+#include <spdlog/spdlog.h>
 
 namespace fl {
 
