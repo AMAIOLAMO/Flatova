@@ -18,7 +18,8 @@ Pipeline::~Pipeline() {
     vkDestroyPipeline(_logical_device, _graphics, nullptr);
 }
 
-bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass) {
+bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass,
+                    VkViewport *p_viewport, VkRect2D *p_scissor) {
     _logical_device = logical;
     _swap_chain_ptr = swap_chain_ptr;
 
@@ -35,17 +36,8 @@ bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass re
         return false;
     }
 
-    VkExtent2D extent = _swap_chain_ptr->get_img_extent();
-
-    _viewport.x = 0.0f;
-    _viewport.y = 0.0f;
-    _viewport.width = (float) extent.width;
-    _viewport.height = (float) extent.height;
-    _viewport.minDepth = 0.0f;
-    _viewport.maxDepth = 1.0f;
-
-    _scissor.extent = extent;
-    _scissor.offset = {0, 0};
+    _p_viewport = p_viewport;
+    _p_scissor = p_scissor;
 
     return true;
 }
@@ -112,8 +104,8 @@ bool Pipeline::create_graphics(VkRenderPass render_pass,
     viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewport_state.viewportCount = 1;
     viewport_state.scissorCount = 1;
-    viewport_state.pViewports = &_viewport;
-    viewport_state.pScissors = &_scissor;
+    viewport_state.pViewports = _p_viewport;
+    viewport_state.pScissors = _p_scissor;
 
     VkPipelineRasterizationStateCreateInfo raster_state{};
     raster_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -198,27 +190,27 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
     return vkCreateShaderModule(_logical_device, &create_info, nullptr, module_ptr) == VK_SUCCESS;
 }
 
-void Pipeline::update_viewport_scissor_extents(VkExtent2D extent) {
-    _viewport.x = 0.0f;
-    _viewport.y = 0.0f;
-    _viewport.width = (float) extent.width;
-    _viewport.height = (float) extent.height;
-    _viewport.minDepth = 0.0f;
-    _viewport.maxDepth = 1.0f;
-
-    _scissor.extent = extent;
-    _scissor.offset = {0, 0};
-}
+/*void Pipeline::update_viewport_scissor_extents(VkExtent2D extent) {*/
+/*    _viewport.x = 0.0f;*/
+/*    _viewport.y = 0.0f;*/
+/*    _viewport.width = (float) extent.width;*/
+/*    _viewport.height = (float) extent.height;*/
+/*    _viewport.minDepth = 0.0f;*/
+/*    _viewport.maxDepth = 1.0f;*/
+/**/
+/*    _scissor.extent = extent;*/
+/*    _scissor.offset = {0, 0};*/
+/*}*/
 
 VkPipeline Pipeline::get_raw_graphics_handle() const {
     return _graphics;
 }
 
-VkViewport& Pipeline::get_viewport_ref() {
-    return _viewport;
-}
-VkRect2D& Pipeline::get_scissor_ref() {
-    return _scissor;
-}
+/*VkViewport& Pipeline::get_viewport_ref() {*/
+/*    return _viewport;*/
+/*}*/
+/*VkRect2D& Pipeline::get_scissor_ref() {*/
+/*    return _scissor;*/
+/*}*/
 
 } // namespace fl

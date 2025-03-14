@@ -27,15 +27,10 @@ public:
     Pipeline(Pipeline&) = delete;
     Pipeline& operator=(Pipeline&) = delete;
 
-    bool init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass);
+    bool init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass render_pass,
+                    VkViewport *p_viewport, VkRect2D *p_scissor);
 
     VkPipeline get_raw_graphics_handle() const;
-    
-    VkViewport& get_viewport_ref();
-    VkRect2D& get_scissor_ref();
-
-    // TODO: HACK! instead we should store the viewport and scissor by the application itself
-    void update_viewport_scissor_extents(VkExtent2D extent);
 
 private:
     // creates a graphics pipeline
@@ -60,8 +55,8 @@ private:
 
     VkPipeline _graphics = VK_NULL_HANDLE;
 
-    VkViewport _viewport;
-    VkRect2D   _scissor;
+    VkViewport *_p_viewport;
+    VkRect2D   *_p_scissor;
 
     VkDevice _logical_device = VK_NULL_HANDLE;
 };

@@ -59,8 +59,12 @@ void Application::init() {
     else
         spdlog::error("create render pass failed!");
 
+
+    VkExtent2D extent = _vk_core.get_swap_chain_extent();
+
+    set_viewport_extents_scissors(extent);
     
-    if(_pipeline.init(logical_device, swpchn_ptr, _render_pass))
+    if(_pipeline.init(logical_device, swpchn_ptr, _render_pass, &_viewport, &_scissor))
         spdlog::info("Pipeline initialization complete");
     else
         spdlog::error("Pipeline initialization failed");
@@ -121,6 +125,19 @@ int Application::run() {
     vkDeviceWaitIdle(logical);
     
     return EXIT_SUCCESS;
+}
+
+
+void Application::set_viewport_extents_scissors(VkExtent2D extent) {
+    _viewport.x = 0.0f;
+    _viewport.y = 0.0f;
+    _viewport.width = (float) extent.width;
+    _viewport.height = (float) extent.height;
+    _viewport.minDepth = 0.0f;
+    _viewport.maxDepth = 1.0f;
+
+    _scissor.extent = extent;
+    _scissor.offset = {0, 0};
 }
 
 bool Application::setup_swap_chain_views() {
@@ -290,8 +307,8 @@ bool Application::record_command_buffer(VkCommandBuffer cmd_buf, uint32_t img_id
 
     vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline.get_raw_graphics_handle());
 
-    vkCmdSetViewport(cmd_buf, 0, 1, &_pipeline.get_viewport_ref());
-    vkCmdSetScissor(cmd_buf, 0, 1, &_pipeline.get_scissor_ref());
+    vkCmdSetViewport(cmd_buf, 0, 1, &_viewport);
+    vkCmdSetScissor(cmd_buf, 0, 1, &_scissor);
 
     #define VERTEX_INPUT_COUNT 6
     vkCmdDraw(cmd_buf, VERTEX_INPUT_COUNT, 1, 0, 0);
@@ -349,7 +366,7 @@ bool Application::draw_frame() {
         Swapchain *swapchain_ptr = _vk_core.get_swap_chain_ptr();
 
         bool success = recreate_swap_chain_and_views();
-        _pipeline.update_viewport_scissor_extents(swapchain_ptr->get_img_extent());
+        set_viewport_extents_scissors(swapchain_ptr->get_img_extent());
         return success;
     }
 
@@ -406,7 +423,7 @@ bool Application::draw_frame() {
         Swapchain *swapchain_ptr = _vk_core.get_swap_chain_ptr();
 
         bool success = recreate_swap_chain_and_views();
-        _pipeline.update_viewport_scissor_extents(swapchain_ptr->get_img_extent());
+        set_viewport_extents_scissors(swapchain_ptr->get_img_extent());
         return success;
     }
 
@@ -437,16 +454,12 @@ bool Application::recreate_swap_chain_and_views() {
 
     _vk_core.get_swap_chain_ptr()->get_images(&_swpchn_imgs);
 
-    if(setup_swap_chain_views())
-        spdlog::info("recreate swap chain image views success!");
-    else {
+    if(!setup_swap_chain_views()) {
         spdlog::error("recreate swap chain image views failed!");
         return false;
     }
 
-    if(setup_swap_chain_frame_buffers())
-        spdlog::info("recreate swap chain frame buffers success!");
-    else {
+    if(!setup_swap_chain_frame_buffers()) {
         spdlog::error("recreate swap chain frame buffers failed!");
         return false;
     }

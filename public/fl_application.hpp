@@ -35,6 +35,8 @@ private:
 
     bool recreate_swap_chain_and_views();
 
+    void set_viewport_extents_scissors(VkExtent2D extent);
+
     bool setup_swap_chain_views();
 
     bool setup_swap_chain_frame_buffers();
@@ -51,6 +53,9 @@ private:
     bool draw_frame();
     
     void destroy_views_and_frame_buffers();
+
+    VkViewport _viewport;
+    VkRect2D   _scissor;
 
     std::vector<VkSemaphore> _img_avail_semas;
     std::vector<VkSemaphore> _render_fin_semas;
