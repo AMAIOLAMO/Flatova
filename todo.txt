@@ -2,3 +2,5 @@
     Rather than the vertex shader providing its own vertex input, replace this with a CPU side buffer
         that passes this to structure to GPU
 
+# Window event handling
+    Minimizing windows can be a special event that requires handling from glfw

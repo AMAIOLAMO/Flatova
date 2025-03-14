@@ -40,22 +40,23 @@ VkCore::~VkCore() {
     spdlog::info("destroyed vk core");
 }
 
-#define action_check(FUNC, MSG) do { \
-    if((FUNC) == false) { \
-        spdlog::error("ACTION \"" MSG "\" FAILED"); \
-        return false; \
-    } \
-    spdlog::info("ACTION \"" MSG "\" SUCCESS"); \
-} while(0)
+bool action_check(bool result, const char *p_msg) {
+    if(result == false) {
+        spdlog::error("ACTION \"{}\" FAILED", p_msg);
+        return false;
+    }
+    spdlog::info("ACTION \"{}\" SUCCESS", p_msg);
+    return true;
+}
 
 bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     action_check(setup_instance(app_name), "setup instance");
 
-    // SETUP DEBUG STUFF
     if(_enable_debug)
         setup_debug_messenger();
 
-    action_check(setup_glfw_surface(window_ptr), "setup glfw surface");
+    if(!action_check(setup_glfw_surface(window_ptr), "setup glfw surface"))
+        return false;
 
     VkPhysicalDevice physical_device = pick_physical_device();
 
@@ -66,10 +67,13 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
     else
         spdlog::info("Find Suitable Physical Device Success");
 
-    action_check(find_queue_families(physical_device, &_queue_family_idxs), "find suitable queue families");
+    if(!action_check(find_queue_families(physical_device, &_queue_family_idxs), "find suitable queue families"))
+        return false;
 
     VkDevice logical_device = VK_NULL_HANDLE;
-    action_check(setup_logical_device(physical_device, &logical_device), "Setup Logical Device");
+
+    if(!action_check(setup_logical_device(physical_device, &logical_device), "Setup Logical Device"))
+        return false;
 
     _device_manager_ptr = new VkDeviceManager {
         physical_device, logical_device
@@ -90,7 +94,8 @@ bool VkCore::init(std::string app_name, GLFWwindow *window_ptr) {
         spdlog::info("grabbed present queue");
 
 
-    action_check(create_swap_chain(window_ptr), "create swap chain");
+    if(!action_check(create_swap_chain(window_ptr), "create swap chain"))
+        return false;
 
     return true;
 }
