@@ -42,6 +42,7 @@ bool Pipeline::init(VkDevice logical, Swapchain *swap_chain_ptr, VkRenderPass re
     return true;
 }
 
+
 bool Pipeline::create_graphics(VkRenderPass render_pass,
                                const std::string &vert_path, const std::string &frag_path) {
     std::vector<char> vert_shader{};
@@ -71,8 +72,14 @@ bool Pipeline::create_graphics(VkRenderPass render_pass,
     // PROGRAMMABLE FUNCTION STAGES
     VkPipelineVertexInputStateCreateInfo vert_input_state{};
     vert_input_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vert_input_state.vertexBindingDescriptionCount = 0; // dont pass any info into vertex yet
-    vert_input_state.vertexAttributeDescriptionCount = 0;
+    auto bind_desc = Vertex::get_binding_desc();
+    auto attr_descs = Vertex::get_attr_descs();
+
+    vert_input_state.vertexBindingDescriptionCount = 1;
+    vert_input_state.pVertexBindingDescriptions = &bind_desc;
+
+    vert_input_state.vertexAttributeDescriptionCount = static_cast<uint32_t>(attr_descs.size());
+    vert_input_state.pVertexAttributeDescriptions = attr_descs.data();
 
     VkPipelineShaderStageCreateInfo vert_shader_stage_info{};
     vert_shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -190,27 +197,8 @@ bool Pipeline::create_shader_module(const std::vector<char> *shader_code_ptr, Vk
     return vkCreateShaderModule(_logical_device, &create_info, nullptr, module_ptr) == VK_SUCCESS;
 }
 
-/*void Pipeline::update_viewport_scissor_extents(VkExtent2D extent) {*/
-/*    _viewport.x = 0.0f;*/
-/*    _viewport.y = 0.0f;*/
-/*    _viewport.width = (float) extent.width;*/
-/*    _viewport.height = (float) extent.height;*/
-/*    _viewport.minDepth = 0.0f;*/
-/*    _viewport.maxDepth = 1.0f;*/
-/**/
-/*    _scissor.extent = extent;*/
-/*    _scissor.offset = {0, 0};*/
-/*}*/
-
 VkPipeline Pipeline::get_raw_graphics_handle() const {
     return _graphics;
 }
-
-/*VkViewport& Pipeline::get_viewport_ref() {*/
-/*    return _viewport;*/
-/*}*/
-/*VkRect2D& Pipeline::get_scissor_ref() {*/
-/*    return _scissor;*/
-/*}*/
 
 } // namespace fl

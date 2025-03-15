@@ -8,8 +8,10 @@
 
 namespace fl {
 
+
 Application::Application(int width, int height, const std::string &name)
     : _width(width), _height(height), _name(name), _win_ptr(nullptr), _vk_core(_enable_validation_layers) {
+
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -30,6 +32,9 @@ Application::~Application() {
 
     destroy_views_and_frame_buffers();
 
+    vkDestroyBuffer(logical, _vertex_buf, nullptr);
+    vkFreeMemory(logical, _vertex_buf_mem, nullptr);
+
     vkDestroyRenderPass(logical, _render_pass, nullptr);
     vkDestroyCommandPool(logical, _cmd_pool, nullptr);
     glfwDestroyWindow(_win_ptr);
@@ -47,7 +52,7 @@ void Application::init() {
     spdlog::info("got {} amount of swap chain images!", _swpchn_imgs.size());
 
     if(setup_swap_chain_views())
-        spdlog::info("setup swap chain image views success!");
+        spdlog::info("Setup swap chain image views success!");
     else
         spdlog::error("Failed setup swap chain image views!");
 
@@ -57,7 +62,7 @@ void Application::init() {
     if(setup_render_pass(swpchn_ptr, logical_device))
         spdlog::info("Create render pass success!");
     else
-        spdlog::error("create render pass failed!");
+        spdlog::error("Create render pass failed!");
 
 
     VkExtent2D extent = _vk_core.get_swap_chain_extent();
@@ -81,6 +86,18 @@ void Application::init() {
         spdlog::info("Create command pool success!");
     else
         spdlog::error("create command pool failed!");
+
+    // TODO: wrap the allocation, creation of a vertex buffer and their respective memory
+    // so that its more easier to handle
+    if(setup_vertex_buffer())
+        spdlog::info("Create vertex buffer success!");
+    else
+        spdlog::error("create vertex buffer failed!");
+
+    if(alloc_bind_vertex_buffer_mem())
+        spdlog::info("Alloc vertex buffer success!");
+    else
+        spdlog::error("Alloc vertex buffer failed!");
 
     if(setup_command_buffers())
         spdlog::info("Create command buffers success!");
@@ -266,6 +283,66 @@ bool Application::setup_command_pool() {
     return vkCreateCommandPool(logical_device, &create_info, nullptr, &_cmd_pool) == VK_SUCCESS;
 }
 
+// TODO: GPU mem alloc type
+bool Application::find_mem_type(uint32_t type_filter, VkMemoryPropertyFlags props, uint32_t *mem_type_ptr) {
+    VkPhysicalDevice physical = _vk_core.get_device_manager_ptr()->get_physical();
+
+    VkPhysicalDeviceMemoryProperties mem_props{};
+    vkGetPhysicalDeviceMemoryProperties(physical, &mem_props);
+
+    for(uint32_t i = 0; mem_props.memoryTypeCount; i++) {
+        if(type_filter & (1 << i) && (mem_props.memoryTypes[i].propertyFlags & props) == props) {
+            *mem_type_ptr = i;
+            
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool Application::setup_vertex_buffer() {
+    VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
+
+    VkBufferCreateInfo buf_info{};
+    buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buf_info.size = sizeof(_verticies[0]) * _verticies.size();
+    buf_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    return vkCreateBuffer(logical, &buf_info, nullptr, &_vertex_buf) == VK_SUCCESS;
+}
+
+bool Application::alloc_bind_vertex_buffer_mem() {
+    VkDevice logical = _vk_core.get_device_manager_ptr()->get_logical();
+
+    VkMemoryRequirements mem_reqs{};
+    vkGetBufferMemoryRequirements(logical, _vertex_buf, &mem_reqs);
+
+    uint32_t mem_filter;
+
+    if(find_mem_type(
+        mem_reqs.memoryTypeBits,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &mem_filter
+    ) == false)
+        return false;
+
+    spdlog::info("Found memory type for allocating device memory");
+
+    VkMemoryAllocateInfo mem_alloc_info{};
+    mem_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    mem_alloc_info.allocationSize = mem_reqs.size;
+    mem_alloc_info.memoryTypeIndex = mem_filter;
+
+    if(vkAllocateMemory(logical, &mem_alloc_info, nullptr, &_vertex_buf_mem) != VK_SUCCESS)
+        return false;
+    // else
+
+    vkBindBufferMemory(logical, _vertex_buf, _vertex_buf_mem, 0);
+
+    return false;
+}
 
 bool Application::setup_command_buffers() {
     _cmd_buffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -338,7 +415,6 @@ bool Application::setup_synchronize_objs() {
 
         if(vkCreateSemaphore(logical, &sem_info, nullptr, &_render_fin_semas[i]) != VK_SUCCESS)
             return false;
-
 
         if(vkCreateFence(logical, &fence_info, nullptr, &_rendering_fences[i]) != VK_SUCCESS)
             return false;

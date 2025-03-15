@@ -3,11 +3,13 @@
 #define _FL_PIPELINE_H
 
 #include <vulkan/vulkan_core.h>
-#include <fl_swapchain.hpp>
+#include <glm/glm.hpp>
 
+#include <fl_swapchain.hpp>
 
 #include <string>
 #include <vector>
+#include <array>
 
 namespace fl {
 
@@ -19,6 +21,44 @@ namespace fl {
 // 4. Fragment Shader
 // 5. Color Blending
 // <- Frame Buffer(Img)
+
+struct Vertex {
+    glm::vec2 pos; 
+    glm::vec3 color;
+
+    // TODO: move this in an implementation file
+    // this vertex binding describes at which rate to load data from memory
+    // throughout the vertices. It specifies the number of bytes between data entries
+    // and whether to move the next data entry after each vertex or after each instance. (vulkan-tutorial)
+    static VkVertexInputBindingDescription get_binding_desc() {
+        VkVertexInputBindingDescription desc{};
+
+        desc.binding = 0;
+        desc.stride = sizeof(Vertex);
+
+        desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX; // send information per vertex
+
+        return desc;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 2> get_attr_descs() {
+        std::array<VkVertexInputAttributeDescription, 2> descs{};
+
+        descs[0].binding  = 0;
+        descs[0].location = 0;
+        descs[0].format = VK_FORMAT_R32G32_SFLOAT;
+        descs[0].offset = offsetof(Vertex, pos);
+
+        descs[1].binding  = 0;
+        descs[1].location = 1;
+        descs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        descs[1].offset = offsetof(Vertex, color);
+
+        return descs;
+    }
+};
+
+
 class Pipeline {
 public:
     Pipeline(const std::string &vert_path, const std::string &frag_path);

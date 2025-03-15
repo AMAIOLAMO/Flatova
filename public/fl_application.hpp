@@ -50,9 +50,16 @@ private:
 
     bool setup_synchronize_objs();
 
+    bool setup_vertex_buffer();
+
+    bool alloc_bind_vertex_buffer_mem();
+
     bool draw_frame();
     
     void destroy_views_and_frame_buffers();
+
+    bool find_mem_type(uint32_t type_filter, VkMemoryPropertyFlags props, uint32_t *mem_type_ptr);
+
 
     VkViewport _viewport;
     VkRect2D   _scissor;
@@ -69,6 +76,23 @@ private:
 
     VkCommandPool _cmd_pool = VK_NULL_HANDLE;
     std::vector<VkCommandBuffer> _cmd_buffers;
+
+    const std::vector<Vertex> _verticies {
+        { {-.5f, -.5f}, {1.f, .0f, .0f} },
+        { {.5f,  -.5f}, {1.f, 1.f, 1.f} },
+        { {-.5f,  .5f}, {0.f, 1.f, .0f} },
+
+        { {.5f, -.5f}, {1.f, 1.f, 1.f} },
+        { {.5f,  .5f}, {0.f, 0.f, 1.f} },
+        { {-.5f, .5f}, {0.f, 1.f, .0f} }
+    };
+
+    VkMemoryRequirements _vert_buf_mem_req;
+
+
+    VkBuffer _vertex_buf = VK_NULL_HANDLE;
+    VkDeviceMemory _vertex_buf_mem;
+    void *_vertex_buf_mapped;
 
     size_t _current_frame = 0;
 

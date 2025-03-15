@@ -14,12 +14,13 @@ glfw3deps = [dependency('glfw3'), dependency('gl')]
 imguidep = dependency('imgui')
 vulkandep = dependency('vulkan')
 spdlogdep = dependency('spdlog')
+glmdep = dependency('glm')
 
 public_inc = include_directories('public')
 
 exe = executable('flatova',
   sources: srcs,
   win_subsystem: 'windows',
-  dependencies: [glfw3deps, imguidep, vulkandep, spdlogdep],
+  dependencies: [glfw3deps, imguidep, vulkandep, spdlogdep, glmdep],
   include_directories: public_inc
 )
